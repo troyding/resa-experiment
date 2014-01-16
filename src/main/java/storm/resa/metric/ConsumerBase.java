@@ -13,7 +13,7 @@ import java.util.*;
  */
 public abstract class ConsumerBase implements IMetricsConsumer {
 
-    private static final Logger LOG = Logger.getLogger(ZkMetricsCollector.class);
+    private static final Logger LOG = Logger.getLogger(ConsumerBase.class);
 
     public static final String METRICS_NAME = "storm.resa.metrics.names";
 
