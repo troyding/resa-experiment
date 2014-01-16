@@ -1,11 +1,5 @@
 package storm.resa.example.wc;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringTokenizer;
-
 import backtype.storm.Config;
 import backtype.storm.StormSubmitter;
 import backtype.storm.topology.BasicOutputCollector;
@@ -15,9 +9,14 @@ import backtype.storm.topology.base.BaseBasicBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
 import storm.resa.spout.RedisQueueSpout;
 import storm.resa.util.ConfigUtil;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringTokenizer;
 
 /**
  * This topology demonstrates Storm's stream groupings and multilang
@@ -55,7 +54,6 @@ public class WordCountTopology {
 
     public static class WordCount extends BaseBasicBolt {
         private static final long serialVersionUID = 4905347466083499207L;
-
         private Map<String, Integer> counts = new HashMap<String, Integer>();
 
         @Override

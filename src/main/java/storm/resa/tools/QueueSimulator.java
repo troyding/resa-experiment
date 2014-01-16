@@ -39,8 +39,9 @@ public class QueueSimulator {
     }
 
     public static void main(String[] args) throws IOException {
-        if (args.length != 6) {
+        if (args.length < 6) {
             System.out.println("usage: QueueSimulator <host> <ip> <inputFile> <queue> <rate> <repeatTimes>");
+            return;
         }
         QueueSimulator simulator = new QueueSimulator(args[0], Integer.parseInt(args[1]));
         System.out.println("start simulate");

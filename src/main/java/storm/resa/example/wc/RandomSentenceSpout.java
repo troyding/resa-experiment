@@ -1,10 +1,5 @@
 package storm.resa.example.wc;
 
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-
-import backtype.storm.metric.api.CountMetric;
 import backtype.storm.metric.api.MultiCountMetric;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
@@ -13,6 +8,10 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
+
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 
 public class RandomSentenceSpout extends BaseRichSpout {
 
