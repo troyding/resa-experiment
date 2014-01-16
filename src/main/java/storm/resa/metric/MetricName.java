@@ -17,6 +17,8 @@ public class MetricName {
 
     public static final String EXECUTE_COUNT = BUILDIN_METRIC_PREFIX + "execute-count";
 
+    public static final String COMPLETE_LATENCY = BUILDIN_METRIC_PREFIX + "complete-latency";
+
     // add by resa
     public static final String TRANSFER_LATENCY = BUILDIN_METRIC_PREFIX + "transfer-latency";
 
