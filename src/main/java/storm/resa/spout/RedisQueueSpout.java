@@ -21,7 +21,7 @@ public class RedisQueueSpout extends BaseRichSpout {
     private String queue;
     private String host;
     private int port;
-    private transient Jedis jedis;
+    private transient Jedis jedis = null;
 
     public RedisQueueSpout(String host, int port, String queue) {
         this.host = host;
@@ -37,20 +37,49 @@ public class RedisQueueSpout extends BaseRichSpout {
     @Override
     public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector spoutOutputCollector) {
         this.collector = spoutOutputCollector;
-        jedis = new Jedis(host, port);
     }
 
     @Override
     public void close() {
-        jedis.disconnect();
+        disconnect();
     }
 
     @Override
     public void nextTuple() {
-        Object text = jedis.lpop(queue);
+        Jedis jedis = getConnectedJedis();
+        if (jedis == null) {
+            return;
+        }
+        Object text;
+        try {
+            text = jedis.lpop(queue);
+        } catch (Exception e) {
+            disconnect();
+            return;
+        }
         if (text != null) {
             collector.emit(Arrays.asList(text), text);
         }
+    }
+
+    private Jedis getConnectedJedis() {
+        if (jedis != null) {
+            return jedis;
+        }
+        //try connect to redis server
+        try {
+            jedis = new Jedis(host, port);
+        } catch (Exception e) {
+        }
+        return jedis;
+    }
+
+    private void disconnect() {
+        try {
+            jedis.disconnect();
+        } catch (Exception e) {
+        }
+        jedis = null;
     }
 
 }
