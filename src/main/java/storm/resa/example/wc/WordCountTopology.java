@@ -96,7 +96,7 @@ public class WordCountTopology {
 
         TopologyBuilder builder = new TopologyBuilder();
 
-        if (ConfigUtil.getBoolean(conf, "spout.redis", false)) {
+        if (!ConfigUtil.getBoolean(conf, "spout.redis", false)) {
             builder.setSpout("say", new RandomSentenceSpout(), ConfigUtil.getInt(conf, "spout.parallelism", 1));
         } else {
             String host = (String) conf.get("redis.host");
