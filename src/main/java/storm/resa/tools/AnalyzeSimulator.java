@@ -1,11 +1,8 @@
 package storm.resa.tools;
 
-import org.apache.commons.io.IOUtils;
 import redis.clients.jedis.Jedis;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * Created by ding on 14-1-15.
@@ -26,18 +23,20 @@ public class AnalyzeSimulator {
 
     public void simulate(File outputFile, String queueName) throws IOException {
         Jedis jedis = new Jedis(host, port);
-
+        BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
         try {
             Object text = null;
             while ((text = jedis.lpop(queueName)) != null) {
                 String t = String.valueOf(text);
-                IOUtils.write(t + "\n", new FileOutputStream(outputFile, true));
+                writer.write(t);
+                writer.newLine();
                 double val = Double.valueOf(t);
                 sum += val;
                 count++;
             }
         } catch (Exception e) {
         } finally {
+            writer.close();
             jedis.quit();
         }
     }
