@@ -32,8 +32,8 @@ public abstract class SimulateBolt extends BaseRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        long inter = (long) (-Math.log(rand.nextDouble()) * 1000.0 / mu);
-        Utils.sleep(inter);
+        double inter = (-Math.log(rand.nextDouble()) * 1000.0 / mu);
+        Utils.sleep((long) inter);
         // metric format
         // key is sentence id
         // value format is <SourceComponent>:<SourceStreamId>,<sleepInterval>,<leaveTime>

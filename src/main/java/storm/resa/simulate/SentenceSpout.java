@@ -1,19 +1,13 @@
 package storm.resa.simulate;
 
-import backtype.storm.metric.api.MultiCountMetric;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
 import storm.resa.spout.RedisQueueSpout;
 
-import java.util.Arrays;
 import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
 
 public class SentenceSpout extends RedisQueueSpout {
 
