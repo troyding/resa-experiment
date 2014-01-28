@@ -10,7 +10,7 @@ split.mu: 10.0
 counter.parallelism: 1
 counter.mu: 5.0
 
-
+metrics.output.queue-name: wordcount
 
 #set worker count
 topology.workers: 1

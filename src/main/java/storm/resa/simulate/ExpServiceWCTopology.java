@@ -71,6 +71,10 @@ public class ExpServiceWCTopology {
         metricsConsumerArgs.put(RedisMetricsCollector.REDIS_HOST, host);
         metricsConsumerArgs.put(RedisMetricsCollector.REDIS_PORT, port);
         metricsConsumerArgs.put(ConsumerBase.METRICS_NAME, Arrays.asList("tuple-completed"));
+        String queueName = conf.get("metrics.output.queue-name").toString();
+        if (queueName != null) {
+            metricsConsumerArgs.put(RedisMetricsCollector.REDIS_QUEUE_NAME, queueName);
+        }
         conf.registerMetricsConsumer(MetricsCollector.class, metricsConsumerArgs, 1);
 
         StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
