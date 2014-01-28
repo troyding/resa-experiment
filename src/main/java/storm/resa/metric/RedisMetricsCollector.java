@@ -6,9 +6,7 @@ import org.apache.log4j.Logger;
 import org.json.simple.JSONValue;
 import redis.clients.jedis.Jedis;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Write metrics to redis server.
@@ -17,21 +15,39 @@ import java.util.Map;
  */
 public class RedisMetricsCollector extends ConsumerBase {
 
+    public static class QueueData {
+        public final String queueName;
+        public final String data;
+
+        public QueueData(String queueName, String data) {
+            this.queueName = queueName;
+            this.data = data;
+        }
+    }
+
+    public static final String REDIS_HOST = "storm.resa.metrics.redis.host";
+    public static final String REDIS_PORT = "storm.resa.metrics.redis.port";
+    public static final String REDIS_QUEUE_NAME = "storm.resa.metrics.redis.queue-name";
+
     private static final Logger LOG = Logger.getLogger(RedisMetricsCollector.class);
 
-    private Jedis jedis;
+    private transient Jedis jedis;
     private String jedisHost;
     private int jedisPort;
-    private String topologyId;
+    protected String queueName;
 
     @Override
     public void prepare(Map stormConf, Object registrationArgument, TopologyContext context,
                         IErrorReporter errorReporter) {
         super.prepare(stormConf, registrationArgument, context, errorReporter);
         Map<String, Object> regArgu = (Map<String, Object>) registrationArgument;
-        jedisHost = (String) regArgu.get("storm.resa.metrics.redis.host");
-        jedisPort = ((Number) regArgu.get("storm.resa.metrics.redis.host")).intValue();
-        this.topologyId = context.getStormId();
+        jedisHost = (String) regArgu.get(REDIS_HOST);
+        jedisPort = ((Number) regArgu.get(REDIS_PORT)).intValue();
+        queueName = regArgu.get(REDIS_QUEUE_NAME).toString();
+        // queue name is not exist, use topology id as default
+        if (queueName == null) {
+            queueName = context.getStormId();
+        }
         LOG.info("Write metrics to redis server " + jedisHost + ":" + jedisPort);
     }
 
@@ -57,6 +73,23 @@ public class RedisMetricsCollector extends ConsumerBase {
 
     @Override
     protected void handleSelectedDataPoints(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
+        List<QueueData> data = dataPoints2QueueElement(taskInfo, dataPoints);
+        if (data == null) {
+            return;
+        }
+        LOG.info("data size is " + data.size());
+        //push to redis
+        for (QueueData e : data) {
+            try {
+                getJedisInstance().rpush(e.queueName, e.data);
+            } catch (Exception e1) {
+                LOG.info("push data to redis failed", e1);
+                closeJedis();
+            }
+        }
+    }
+
+    protected List<QueueData> dataPoints2QueueElement(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
         //data format is "[srcComponentId-taskId]:timestamp:data point json"
         StringBuilder sb = new StringBuilder();
         sb.append('[').append(taskInfo.srcComponentId).append('-').append(taskInfo.srcTaskId).append("]:");
@@ -67,13 +100,9 @@ public class RedisMetricsCollector extends ConsumerBase {
             metrics.put(dataPoint.name, dataPoint.value);
         }
         sb.append(JSONValue.toJSONString(metrics));
-        //push to redis
-        try {
-            getJedisInstance().rpush(topologyId, sb.toString());
-        } catch (Exception e) {
-            closeJedis();
-        }
+        return Collections.singletonList(new QueueData(queueName, sb.toString()));
     }
+
 
     @Override
     public void cleanup() {

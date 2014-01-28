@@ -31,6 +31,10 @@ public abstract class ConsumerBase implements IMetricsConsumer {
         LOG.info("To collect metrics:" + metricNames);
     }
 
+    public void addMetricName(String name) {
+        metricNames.add(name);
+    }
+
     @Override
     public void handleDataPoints(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
         //ignore system component

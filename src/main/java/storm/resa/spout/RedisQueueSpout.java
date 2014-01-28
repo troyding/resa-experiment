@@ -58,8 +58,12 @@ public class RedisQueueSpout extends BaseRichSpout {
             return;
         }
         if (text != null) {
-            collector.emit(Arrays.asList(text), text);
+            emitData(text);
         }
+    }
+
+    protected void emitData(Object data) {
+        collector.emit(Arrays.asList(data), data);
     }
 
     private Jedis getConnectedJedis() {

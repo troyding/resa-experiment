@@ -41,6 +41,14 @@ public class ConfigUtil {
         return defaultValue;
     }
 
+    public static double getDouble(Map<String, Object> conf, String key, double defaultValue) {
+        Object value = conf.get(key);
+        if (value != null && value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        return defaultValue;
+    }
+
     public static boolean getBoolean(Map<String, Object> conf, String key, boolean defaultValue) {
         Object value = conf.get(key);
         if (value != null && value instanceof Boolean) {
