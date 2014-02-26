@@ -16,6 +16,7 @@ public class MetricsCollector extends RedisMetricsCollector {
     // map data: <sid> --->  <component> ---> <metrics>
     private transient Map<String, Map<String, Object>> paddingMetricsData = new HashMap<String, Map<String, Object>>();
     private transient Set<String> spouts = new HashSet<String>();
+    private transient TreeMap<Long, Object[]> waitingTuples = new TreeMap<Long, Object[]>();
 
     @Override
     public void prepare(Map stormConf, Object argument, TopologyContext context, IErrorReporter reporter) {
@@ -29,6 +30,33 @@ public class MetricsCollector extends RedisMetricsCollector {
         }
     }
 
+    private void tupleFinished(String tupleId, Long completeLatency, List<QueueData> output) {
+        // retrieve completed tuple
+        Map<String, Object> data = paddingMetricsData.remove(tupleId);
+        if (data == null) {
+            // No tuple metrics found, add it to waiting list
+            // check it after 1 min
+            while (true) {
+                Long nextCheckTime = System.currentTimeMillis() + 60000;
+                if (waitingTuples.containsKey(nextCheckTime)) {
+                    // avoid time key conflict
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                    }
+                } else {
+                    waitingTuples.put(nextCheckTime, new Object[]{tupleId, completeLatency});
+                    break;
+                }
+            }
+        } else {
+            //add complete-lentency to output json
+            data.put("_complete-latency", completeLatency.intValue());
+            // convert data to json string and add it to redis queue
+            output.add(new QueueData(queueName, JSONValue.toJSONString(data)));
+        }
+    }
+
     @Override
     protected List<QueueData> dataPoints2QueueElement(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
         // write out metrics only when tuple was completed
@@ -39,16 +67,7 @@ public class MetricsCollector extends RedisMetricsCollector {
                 if (dataPoint.name.equals("tuple-completed")) {
                     Map<String, Long> completedData = (Map<String, Long>) dataPoint.value;
                     for (Map.Entry<String, Long> e : completedData.entrySet()) {
-                        // retrieve completed tuple
-                        Map<String, Object> data = paddingMetricsData.remove(e.getKey());
-                        if (data == null) {
-                            // never arrived here, just for safe
-                            continue;
-                        }
-                        //add complete-lentency to output json
-                        data.put("_complete-latency", e.getValue().intValue());
-                        // convert data to json string and add it to redis queue
-                        queueDatas.add(new QueueData(queueName, JSONValue.toJSONString(data)));
+                        tupleFinished(e.getKey(), e.getValue(), queueDatas);
                     }
                 }
             }
@@ -73,6 +92,15 @@ public class MetricsCollector extends RedisMetricsCollector {
                     }
                     componentMetrics.addAll(e.getValue());
                 }
+            }
+            // check waiting list
+            if (!waitingTuples.isEmpty() && waitingTuples.firstKey() < System.currentTimeMillis()) {
+                Collection<Object[]> candidates = waitingTuples.headMap(System.currentTimeMillis()).values();
+                ArrayList<QueueData> queueDatas = new ArrayList<QueueData>(candidates.size());
+                for (Object[] e : candidates.toArray(new Object[candidates.size()][])) {
+                    tupleFinished((String) e[0], (Long) e[1], queueDatas);
+                }
+                return queueDatas;
             }
         }
         return null;
