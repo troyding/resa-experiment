@@ -93,12 +93,15 @@ public class MetricsCollector extends RedisMetricsCollector {
                     componentMetrics.addAll(e.getValue());
                 }
             }
+            long currTime = System.currentTimeMillis();
             // check waiting list
-            if (!waitingTuples.isEmpty() && waitingTuples.firstKey() < System.currentTimeMillis()) {
-                Collection<Object[]> candidates = waitingTuples.headMap(System.currentTimeMillis()).values();
+            if (!waitingTuples.isEmpty() && waitingTuples.firstKey() < currTime) {
+                Map<Long, Object[]> candidates = new HashMap<Long, Object[]>(waitingTuples.headMap(currTime));
                 ArrayList<QueueData> queueDatas = new ArrayList<QueueData>(candidates.size());
-                for (Object[] e : candidates.toArray(new Object[candidates.size()][])) {
-                    tupleFinished((String) e[0], (Long) e[1], queueDatas);
+                for (Map.Entry<Long, Object[]> e : candidates.entrySet()) {
+                    waitingTuples.remove(e.getKey());
+                    Object[] v = e.getValue();
+                    tupleFinished((String) v[0], (Long) v[1], queueDatas);
                 }
                 return queueDatas;
             }
