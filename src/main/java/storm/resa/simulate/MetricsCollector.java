@@ -3,9 +3,10 @@ package storm.resa.simulate;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.task.IErrorReporter;
 import backtype.storm.task.TopologyContext;
-import org.json.simple.JSONValue;
+import org.codehaus.jackson.map.ObjectMapper;
 import storm.resa.metric.RedisMetricsCollector;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -17,6 +18,7 @@ public class MetricsCollector extends RedisMetricsCollector {
     private transient Map<String, Map<String, Object>> paddingMetricsData = new HashMap<String, Map<String, Object>>();
     private transient Set<String> spouts = new HashSet<String>();
     private transient TreeMap<Long, Object[]> waitingTuples = new TreeMap<Long, Object[]>();
+    private transient ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void prepare(Map stormConf, Object argument, TopologyContext context, IErrorReporter reporter) {
@@ -53,7 +55,10 @@ public class MetricsCollector extends RedisMetricsCollector {
             //add complete-lentency to output json
             data.put("_complete-latency", completeLatency.intValue());
             // convert data to json string and add it to redis queue
-            output.add(new QueueData(queueName, JSONValue.toJSONString(data)));
+            try {
+                output.add(new QueueData(queueName, objectMapper.writeValueAsString(data)));
+            } catch (IOException e) {
+            }
         }
     }
 
