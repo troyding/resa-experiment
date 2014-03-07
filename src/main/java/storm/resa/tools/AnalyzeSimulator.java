@@ -12,6 +12,7 @@ public class AnalyzeSimulator {
     private String host;
     private int port;
     private double sum;
+    private double sum_2;
     private int count;
 
     public AnalyzeSimulator(String host, int port) {
@@ -32,6 +33,7 @@ public class AnalyzeSimulator {
                 writer.newLine();
                 double val = Double.valueOf(t);
                 sum += val;
+                sum_2 = sum_2 + val*val;
                 count++;
             }
         } catch (Exception e) {
@@ -52,7 +54,14 @@ public class AnalyzeSimulator {
     public double getAvg() {
         return (count > 0) ? (sum / (double) count) : 0.0;
     }
-
+    
+    public double getAvg2(){
+    	return (count > 0) ? (sum_2 / (double) count) : 0.0;
+    }
+    
+    public double getVar(){
+    	return getAvg2() - getAvg() * getAvg();
+    }
 
     public static void main(String[] args) throws IOException {
         if (args.length < 4) {
@@ -64,6 +73,6 @@ public class AnalyzeSimulator {
         simulator.simulate(new File(args[2]), args[3]);
 
         System.out.println("end analyze, count: " + String.valueOf(simulator.getCount()) + ", sum: " +
-                String.valueOf(simulator.getSum()) + ", avg: " + simulator.getAvg());
+                String.valueOf(simulator.getSum()) + ", avg: " + simulator.getAvg() + ", var: " + simulator.getVar());
     }
 }

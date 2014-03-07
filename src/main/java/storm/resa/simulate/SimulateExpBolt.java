@@ -12,14 +12,14 @@ import java.util.Random;
 /**
  * Created by ding on 14-1-27.
  */
-public abstract class SimulateBolt extends BaseRichBolt {
+public abstract class SimulateExpBolt extends BaseRichBolt {
 
     private transient Random rand;
     private double mu;
     protected transient OutputCollector collector;
     protected transient ExecuteMetric executeMetric;
 
-    public SimulateBolt(double mu) {
+    public SimulateExpBolt(double mu) {
         this.mu = mu;
     }
 
@@ -33,7 +33,7 @@ public abstract class SimulateBolt extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
     	long arrivalTime = System.currentTimeMillis();
-        double inter = (-Math.log(rand.nextDouble()) * 1000.0 / mu);
+    	double inter = (-Math.log(rand.nextDouble()) * 1000.0 / mu);
         Utils.sleep((long) inter);
         // metric format
         // key is sentence id
