@@ -45,12 +45,13 @@ public class Updater implements IRichBolt {
                     result.and(bitSet);
                 }
             });
-            result.stream().forEach((status) -> {
-                if (status == 0) {
-                    // output
-                    collector.emit(new Values());
-                }
-            });
+            System.out.println(result);
+//            result.stream().forEach((status) -> {
+//                if (status == 0) {
+//                    // output
+//                    collector.emit(new Values());
+//                }
+//            });
         }
         collector.ack(input);
     }

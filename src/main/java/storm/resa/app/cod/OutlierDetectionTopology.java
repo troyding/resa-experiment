@@ -42,7 +42,8 @@ public class OutlierDetectionTopology {
         String host = (String) conf.get("redis.host");
         int port = ((Number) conf.get("redis.port")).intValue();
         String queue = (String) conf.get("redis.queue");
-        builder.setSpout("objectSpout", new ObjectSpout(host, port, queue),
+        int objectCount = ConfigUtil.getIntThrow(conf, "spout.object.size");
+        builder.setSpout("objectSpout", new ObjectSpout(host, port, queue, objectCount),
                 ConfigUtil.getInt(conf, "spout.parallelism", 1));
 
         List<double[]> randVectors = generateRandomVectors(ConfigUtil.getIntThrow(conf, "projection.dimension"),
@@ -50,7 +51,6 @@ public class OutlierDetectionTopology {
         builder.setBolt("projection", new Projection(new ArrayList<>(randVectors)),
                 ConfigUtil.getInt(conf, "projection.parallelism", 1)).shuffleGrouping("objectSpout");
 
-        int objectCount = ConfigUtil.getIntThrow(conf, "projection.dimension");
         int minNeighborCount = ConfigUtil.getIntThrow(conf, "detector.neighbor.count.min");
         double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "detector.neighbor.distance.max");
         builder.setBolt("detector", new Detector(objectCount, minNeighborCount, maxNeighborDistance),
