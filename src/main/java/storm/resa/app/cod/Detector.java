@@ -63,9 +63,15 @@ public class Detector implements IRichBolt {
         int objId = input.getIntegerByField(ObjectSpout.ID_FILED);
         double newProjValue = input.getDoubleByField(Projection.PROJECTION_VALUE_FIELD);
         int newNeighborCount = 0;
+        boolean anyObjectMissing = false;
         BitSet outlier = new BitSet(objectCount);
         for (int i = 0; i < objectCount; i++) {
-            if (i == objId || context.projectionValues[i] == DEFAULT_PROJECTION_VALUE) {
+            // check whether if any objects missing
+            if (context.projectionValues[i] == DEFAULT_PROJECTION_VALUE) {
+                anyObjectMissing = true;
+                continue;
+            }
+            if (i == objId) {
                 continue;
             }
             boolean isNeighNow = isNeighbor(newProjValue, context.projectionValues[i]);
@@ -86,7 +92,10 @@ public class Detector implements IRichBolt {
         context.neighborCount[objId] = newNeighborCount;
         outlier.set(objId, newNeighborCount < minNeighborCount);
 
-        collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
+        //if any objects missing, wait for it. This is used when system startup
+        if (!anyObjectMissing) {
+            collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
+        }
         collector.ack(input);
     }
 

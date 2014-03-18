@@ -6,6 +6,8 @@ import backtype.storm.tuple.Values;
 import storm.resa.spout.RedisQueueSpout;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * Created by ding on 14-3-14.
@@ -25,10 +27,11 @@ public class ObjectSpout extends RedisQueueSpout {
 
     @Override
     protected void emitData(Object data) {
-        String[] tmp = ((String) data).split("|");
+        String[] tmp = ((String) data).split("[|]");
         double[] v = Arrays.stream(tmp[2].split(",")).mapToDouble((str) -> Double.parseDouble(str)).toArray();
-        int objId = (int) (Long.parseLong(tmp[0]) % objectCount);
-        collector.emit(new Values(objId, v, Long.parseLong(tmp[1])));
+        Integer objId = (int) (Long.parseLong(tmp[0]) % objectCount);
+        Long timestamp = Long.parseLong(tmp[1]);
+        collector.emit(new Values(objId, v, timestamp), Collections.singletonMap(objId, timestamp));
     }
 
     @Override

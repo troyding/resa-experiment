@@ -6,10 +6,9 @@ import storm.resa.util.ConfigUtil;
 import storm.resa.util.Counter;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by ding on 14-3-18.
@@ -22,17 +21,18 @@ public class DataSender {
 
     public DataSender(Map<String, Object> conf) {
         this.host = (String) conf.get("redis.host");
-        this.port = ((Number) conf.get("redis.host")).intValue();
+        this.port = ((Number) conf.get("redis.port")).intValue();
+        this.queueName = (String) conf.get("redis.queue");
     }
 
     public void send2Queue(Path inputFile, float rate) throws IOException {
         Jedis jedis = new Jedis(host, port);
-        Counter counter = new Counter(0);
+        AtomicLong counter = new AtomicLong(0);
         long sleep = (long) (1000 / rate);
         try (BufferedReader reader = Files.newBufferedReader(inputFile)) {
             reader.lines().forEach((line) -> {
                 Utils.sleep(sleep);
-                String data = counter.getAndInc() + "|" + System.currentTimeMillis() + "|" + line;
+                String data = counter.getAndIncrement() + "|" + System.currentTimeMillis() + "|" + line;
                 jedis.rpush(queueName, data);
             });
         } finally {
@@ -41,8 +41,8 @@ public class DataSender {
     }
 
     public static void main(String[] args) throws IOException {
-        if (args.length < 6) {
-            System.out.println("usage: QueueSimulator <confFile> <inputFile> <rate>");
+        if (args.length < 3) {
+            System.out.println("usage: DataSender <confFile> <inputFile> <rate>");
             return;
         }
         DataSender sender = new DataSender(ConfigUtil.readConfig(new File(args[0])));

@@ -11,6 +11,7 @@ import storm.resa.util.Counter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * Created by ding on 14-3-14.
@@ -37,10 +38,11 @@ public class Projection implements IRichBolt {
         Object objId = input.getValueByField(ObjectSpout.ID_FILED);
         Object time = input.getValueByField(ObjectSpout.TIME_FILED);
         double[] v = (double[]) input.getValueByField(ObjectSpout.VECTOR_FILED);
-        Counter i = new Counter();
-        randomVectors.stream().mapToDouble((randVector) -> innerProduct(randVector, v)).forEach((product) -> {
-            collector.emit(input, new Values(objId, i.getAndInc(), product, time));
+
+        IntStream.range(0, randomVectors.size()).forEach((i) -> {
+            collector.emit(input, new Values(objId, i, innerProduct(randomVectors.get(i), v), time));
         });
+
         collector.ack(input);
     }
 
@@ -48,11 +50,7 @@ public class Projection implements IRichBolt {
         if (v1.length != v2.length) {
             throw new IllegalArgumentException();
         }
-        double sum = 0;
-        for (int i = 0; i < v1.length; i++) {
-            sum = sum + v1[i] * v2[i];
-        }
-        return sum;
+        return IntStream.range(0, v1.length).mapToDouble((i) -> v1[i] * v2[i]).sum();
     }
 
     @Override

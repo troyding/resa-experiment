@@ -3,14 +3,14 @@
 spout.redis: false
 
 spout.parallelism: 1
-spout.object.size: 20
+spout.object.size: 10000
 
 projection.parallelism: 1
-projection.dimension: 40
-projection.size: 20
+projection.dimension: 34
+projection.size: 100
 
-detector.neighbor.distance.max: 10
-detector.neighbor.count.min: 30
+detector.neighbor.distance.max: 1
+detector.neighbor.count.min: 100
 detector.parallelism: 1
 
 updater.parallelism: 1
