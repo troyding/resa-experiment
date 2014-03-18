@@ -42,10 +42,11 @@ public class Updater implements IRichBolt {
             BitSet result = ret.get(0);
             ret.stream().forEach((bitSet) -> {
                 if (result != bitSet) {
-                    result.and(bitSet);
+                    result.or(bitSet);
                 }
             });
-            System.out.println(result);
+            // output
+            //System.out.println(result);
 //            result.stream().forEach((status) -> {
 //                if (status == 0) {
 //                    // output

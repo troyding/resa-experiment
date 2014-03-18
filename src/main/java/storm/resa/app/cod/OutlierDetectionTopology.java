@@ -7,10 +7,7 @@ import backtype.storm.tuple.Fields;
 import storm.resa.util.ConfigUtil;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
@@ -31,7 +28,6 @@ public class OutlierDetectionTopology {
 
     public static void main(String[] args) throws Exception {
         Config conf = ConfigUtil.readConfig(new File(args[1]));
-
         if (conf == null) {
             throw new RuntimeException("cannot find conf file " + args[1]);
         }
