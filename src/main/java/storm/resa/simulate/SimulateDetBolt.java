@@ -6,8 +6,7 @@ import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by ding on 14-1-27.
@@ -34,9 +33,9 @@ public abstract class SimulateDetBolt extends BaseRichBolt {
     public void execute(Tuple tuple) {
         ///double inter = (-Math.log(rand.nextDouble()) * 1000.0 / mu);
         ///Utils.sleep((long) inter);
-    	long arrivalTime = System.currentTimeMillis();
-    	double inter = 1000.0 / mu;
-    	Utils.sleep((long)inter);
+        long arrivalTime = System.currentTimeMillis();
+        double inter = 1000.0 / mu;
+        Utils.sleep((long) inter);
         // metric format
         // key is sentence id
         // value format is <SourceComponent>:<SourceStreamId>,<sleepInterval>,<leaveTime>

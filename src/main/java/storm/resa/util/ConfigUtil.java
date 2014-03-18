@@ -41,6 +41,22 @@ public class ConfigUtil {
         return defaultValue;
     }
 
+    public static int getIntThrow(Map<String, Object> conf, String key) {
+        return getNumberThrow(conf, key).intValue();
+    }
+
+    public static double getDoubleThrow(Map<String, Object> conf, String key) {
+        return getNumberThrow(conf, key).doubleValue();
+    }
+
+    private static Number getNumberThrow(Map<String, Object> conf, String key) {
+        Object value = conf.get(key);
+        if (value != null && value instanceof Number) {
+            return (Number) value;
+        }
+        throw new IllegalStateException("no " + key + " found in this conf");
+    }
+
     public static double getDouble(Map<String, Object> conf, String key, double defaultValue) {
         Object value = conf.get(key);
         if (value != null && value instanceof Number) {

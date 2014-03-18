@@ -1,0 +1,19 @@
+#true use redis spout, else use random spout
+#default is false
+spout.redis: false
+
+spout.parallelism: 1
+projection.parallelism: 1
+detector.parallelism: 1
+updater.parallelism: 1
+
+projection.dimension: 40
+projection.size: 20
+
+#set worker count
+topology.workers: 1
+
+##redis config if redis spout is enabled
+redis.host: "localhost"
+redis.port: 6379
+redis.queue: "sentences"

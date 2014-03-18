@@ -1,4 +1,4 @@
-package storm.resa.example.wc;
+package storm.resa.app.wc;
 
 import backtype.storm.Config;
 import backtype.storm.StormSubmitter;
