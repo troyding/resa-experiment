@@ -52,7 +52,7 @@ public class OutlierDetectionTopology {
 
         int objectCount = ConfigUtil.getIntThrow(conf, "projection.dimension");
         int minNeighborCount = ConfigUtil.getIntThrow(conf, "detector.neighbor.count.min");
-        double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "detector.neighbor.count.min");
+        double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "detector.neighbor.distance.max");
         builder.setBolt("detector", new Detector(objectCount, minNeighborCount, maxNeighborDistance),
                 ConfigUtil.getInt(conf, "detector.parallelism", 1))
                 .fieldsGrouping("projection", new Fields(Projection.PROJECTION_ID_FIELD));
