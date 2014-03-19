@@ -20,7 +20,7 @@ public class OutlierDetectionTopology {
     public static List<double[]> generateRandomVectors(int dimension, int vectorCount) {
         Random rand = new Random();
         return Stream.generate(() -> {
-            double[] v = DoubleStream.generate(() -> rand.nextGaussian()).limit(dimension).toArray();
+            double[] v = DoubleStream.generate(rand::nextGaussian).limit(dimension).toArray();
             double sum = Math.sqrt(Arrays.stream(v).map((d) -> d * d).sum());
             return Arrays.stream(v).map((d) -> d / sum).toArray();
         }).limit(vectorCount).collect(Collectors.toList());
