@@ -28,7 +28,7 @@ public class MeasurableSpout implements IRichSpout {
 
     private IRichSpout delegate;
     private TraceIdGenerator.OfSpout traceIdGenerator;
-    private transient storm.resa.simulate.TupleCompletedMetric completedMetric;
+    private transient TupleCompletedMetric completedMetric;
 
     public MeasurableSpout(IRichSpout delegate, TraceIdGenerator.OfSpout traceIdGenerator) {
         this.delegate = delegate;
