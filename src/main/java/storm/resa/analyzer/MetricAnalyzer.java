@@ -91,20 +91,10 @@ public class MetricAnalyzer {
                     compAvg.put(e.getKey(), avgCalc);
                 }
                 for (String element : (List<String>) e.getValue()) {
-                    double num = Double.valueOf(element.split(",")[2]);
-                    avgCalc.addNumber(num);
-                }
-
-                AvgCalc avgCalc2 = compAvg.get(e.getKey() + "_diff");
-                if (avgCalc2 == null) {
-                    avgCalc2 = new AvgCalc();
-                    compAvg.put(e.getKey() + "_diff", avgCalc2);
-                }
-                for (String element : (List<String>) e.getValue()) {
                     long arrival = Long.valueOf(element.split(",")[1]);
-                    long depature = Long.valueOf(element.split(",")[3]);
+                    long depature = Long.valueOf(element.split(",")[2]);
                     double dur = (double)(depature - arrival);
-                    avgCalc2.addNumber(dur);
+                    avgCalc.addNumber(dur);
                 }
             }
             ///count++;
