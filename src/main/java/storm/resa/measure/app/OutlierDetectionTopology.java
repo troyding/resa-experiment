@@ -16,7 +16,6 @@ import storm.resa.util.ConfigUtil;
 
 import storm.resa.metric.RedisMetricsCollector;
 import storm.resa.metric.ConsumerBase;
-import storm.resa.simulate.MetricsCollector;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -82,15 +81,15 @@ public class OutlierDetectionTopology {
         builder.setBolt("updater", updaterBolt, ConfigUtil.getInt(conf, "updater.parallelism", 1))
                 .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
 
-        Map<String, Object> metricsConsumerArgs = new HashMap<String, Object>();
+        Map<String, Object> metricsConsumerArgs = new HashMap<>();
         metricsConsumerArgs.put(RedisMetricsCollector.REDIS_HOST, host);
         metricsConsumerArgs.put(RedisMetricsCollector.REDIS_PORT, port);
         metricsConsumerArgs.put(ConsumerBase.METRICS_NAME, Arrays.asList("tuple-completed"));
-        String queueName = conf.get("metrics.output.queue-name").toString();
+        String queueName = (String) conf.get("metrics.output.queue-name");
         if (queueName != null) {
             metricsConsumerArgs.put(RedisMetricsCollector.REDIS_QUEUE_NAME, queueName);
         }
-        conf.registerMetricsConsumer(MetricsCollector.class, metricsConsumerArgs, 1);
+        conf.registerMetricsConsumer(MeasurementCollector.class, metricsConsumerArgs, 1);
 
         StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
     }
