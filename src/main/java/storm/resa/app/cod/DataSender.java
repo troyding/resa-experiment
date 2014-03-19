@@ -56,7 +56,7 @@ public class DataSender {
                 long sleep = (long) (1000 / Float.parseFloat(args[3]));
                 sender.send2Queue(dataFile, () -> sleep);
                 break;
-            case "":
+            case "poison":
                 double lambda = Float.parseFloat(args[3]);
                 sender.send2Queue(dataFile, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
                 break;
