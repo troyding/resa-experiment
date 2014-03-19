@@ -12,6 +12,7 @@ import storm.resa.app.cod.Projection;
 import storm.resa.app.cod.Updater;
 import storm.resa.measure.MeasurableBolt;
 import storm.resa.measure.MeasurableSpout;
+import storm.resa.measure.TraceIdGenerator;
 import storm.resa.util.ConfigUtil;
 
 import storm.resa.metric.RedisMetricsCollector;
@@ -59,25 +60,23 @@ public class OutlierDetectionTopology {
                 (streamId, tuple, messageId) -> tuple.get(0) + "-" + tuple.get(2));
         builder.setSpout("objectSpout", spout, ConfigUtil.getInt(conf, "spout.parallelism", 1));
 
+        TraceIdGenerator.OfBolt generator = (tuple) -> tuple.getValueByField(ObjectSpout.ID_FILED)
+                + "-" + tuple.getValueByField(ObjectSpout.TIME_FILED);
+
         List<double[]> randVectors = generateRandomVectors(ConfigUtil.getIntThrow(conf, "projection.dimension"),
                 ConfigUtil.getIntThrow(conf, "projection.size"));
-        IRichBolt projectionBolt = new MeasurableBolt(new Projection(new ArrayList<>(randVectors)),
-                (tuple) -> tuple.getValueByField(ObjectSpout.ID_FILED)
-                        + "-" + tuple.getValueByField(ObjectSpout.TIME_FILED));
+        IRichBolt projectionBolt = new MeasurableBolt(new Projection(new ArrayList<>(randVectors)), generator);
         builder.setBolt("projection", projectionBolt,
                 ConfigUtil.getInt(conf, "projection.parallelism", 1)).shuffleGrouping("objectSpout");
 
         int minNeighborCount = ConfigUtil.getIntThrow(conf, "detector.neighbor.count.min");
         double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "detector.neighbor.distance.max");
         IRichBolt detectorBolt = new MeasurableBolt(new Detector(objectCount, minNeighborCount, maxNeighborDistance),
-                (tuple) -> tuple.getValueByField(ObjectSpout.ID_FILED)
-                        + "-" + tuple.getValueByField(ObjectSpout.TIME_FILED));
+                generator);
         builder.setBolt("detector", detectorBolt, ConfigUtil.getInt(conf, "detector.parallelism", 1))
                 .fieldsGrouping("projection", new Fields(Projection.PROJECTION_ID_FIELD));
 
-        IRichBolt updaterBolt = new MeasurableBolt(new Updater(randVectors.size()),
-                (tuple) -> tuple.getValueByField(ObjectSpout.ID_FILED)
-                        + "-" + tuple.getValueByField(ObjectSpout.TIME_FILED));
+        IRichBolt updaterBolt = new MeasurableBolt(new Updater(randVectors.size()), generator);
         builder.setBolt("updater", updaterBolt, ConfigUtil.getInt(conf, "updater.parallelism", 1))
                 .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
 

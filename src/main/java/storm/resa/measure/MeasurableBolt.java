@@ -31,18 +31,20 @@ public class MeasurableBolt implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         String id = traceIdGenerator.apply(tuple);
-        long arrivalTime = System.currentTimeMillis();
-        // double inter = (-Math.log(rand.nextDouble()) * 1000.0 / mu);
-        // Utils.sleep((long) inter);
-        delegate.execute(tuple);
-        // metric format
-        // key is sentence id
-        // value format is <SourceComponent>:<SourceStreamId>,<arrivalTime>,<leaveTime>
-        StringBuilder value = new StringBuilder();
-        value.append(tuple.getSourceComponent()).append(':');
-        value.append(tuple.getSourceStreamId()).append(',');
-        value.append(arrivalTime).append(',').append(System.currentTimeMillis());
-        executeMetric.addMetric(id, value.toString());
+        if (id == null) {
+            delegate.execute(tuple);
+        } else {
+            long arrivalTime = System.currentTimeMillis();
+            delegate.execute(tuple);
+            // metric format
+            // key is sentence id
+            // value format is <SourceComponent>:<SourceStreamId>,<arrivalTime>,<leaveTime>
+            StringBuilder value = new StringBuilder();
+            value.append(tuple.getSourceComponent()).append(':');
+            value.append(tuple.getSourceStreamId()).append(',');
+            value.append(arrivalTime).append(',').append(System.currentTimeMillis());
+            executeMetric.addMetric(id, value.toString());
+        }
     }
 
     @Override
