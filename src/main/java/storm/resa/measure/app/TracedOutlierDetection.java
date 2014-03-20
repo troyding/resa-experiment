@@ -10,9 +10,9 @@ import storm.resa.app.cod.Detector;
 import storm.resa.app.cod.ObjectSpout;
 import storm.resa.app.cod.Projection;
 import storm.resa.app.cod.Updater;
+import storm.resa.measure.MeasurableSpout;
 import storm.resa.measure.TracedMeasurementCollector;
 import storm.resa.measure.TracedBolt;
-import storm.resa.measure.TracedSpout;
 import storm.resa.measure.TraceIdGenerator;
 import storm.resa.util.ConfigUtil;
 
@@ -33,7 +33,7 @@ import java.util.Map;
 /**
  * Created by ding on 14-3-17.
  */
-public class OutlierDetectionTopology {
+public class TracedOutlierDetection {
 
     public static List<double[]> generateRandomVectors(int dimension, int vectorCount) {
         Random rand = new Random();
@@ -57,7 +57,7 @@ public class OutlierDetectionTopology {
         String queue = (String) conf.get("redis.queue");
         int objectCount = ConfigUtil.getIntThrow(conf, "a-spout.object.size");
         // use objectId+time as traceID
-        IRichSpout spout = new TracedSpout(new ObjectSpout(host, port, queue, objectCount),
+        IRichSpout spout = new MeasurableSpout(new ObjectSpout(host, port, queue, objectCount),
                 (streamId, tuple, messageId) -> tuple.get(0) + "-" + tuple.get(2));
         builder.setSpout("objectSpout", spout, ConfigUtil.getInt(conf, "a-spout.parallelism", 1));
 

@@ -8,10 +8,19 @@ import java.util.Map;
 /**
  * Created by ding on 14-1-27.
  */
-public class TracedCompletedMetric implements IMetric {
+public class CompletedMetric implements IMetric {
 
     private Map<String, Long> paddingTuples = new HashMap<String, Long>();
     private Map<String, Long> completedTuples = new HashMap<String, Long>();
+    private boolean agg = false;
+
+    public CompletedMetric(boolean agg) {
+        this.agg = agg;
+    }
+
+    public CompletedMetric() {
+        this(false);
+    }
 
     public void tupleStarted(String traceId) {
         paddingTuples.put(traceId, System.currentTimeMillis());
@@ -19,7 +28,9 @@ public class TracedCompletedMetric implements IMetric {
 
     public void tupleFailed(String traceId) {
         paddingTuples.remove(traceId);
-        completedTuples.put(traceId, -1L);
+        if (!agg) {
+            completedTuples.put(traceId, -1L);
+        }
     }
 
     public void tupleCompleted(String traceId) {
@@ -32,6 +43,14 @@ public class TracedCompletedMetric implements IMetric {
     public Object getValueAndReset() {
         Map<String, Long> ret = completedTuples;
         completedTuples = new HashMap<String, Long>();
+        if (agg) {
+            long sum = 0, sumOfSquare = 0;
+            for (Long l : ret.values()) {
+                sum = sum + l;
+                sumOfSquare = sumOfSquare + l * l;
+            }
+            return ret.size() + "," + sum + "," + sumOfSquare;
+        }
         return ret;
     }
 

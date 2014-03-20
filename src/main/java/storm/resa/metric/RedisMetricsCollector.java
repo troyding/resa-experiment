@@ -15,11 +15,11 @@ import java.util.*;
  */
 public class RedisMetricsCollector extends ConsumerBase {
 
-    public static class QueueData {
+    public static class QueueElement {
         public final String queueName;
         public final String data;
 
-        public QueueData(String queueName, String data) {
+        public QueueElement(String queueName, String data) {
             this.queueName = queueName;
             this.data = data;
         }
@@ -73,13 +73,13 @@ public class RedisMetricsCollector extends ConsumerBase {
 
     @Override
     protected void handleSelectedDataPoints(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
-        List<QueueData> data = dataPoints2QueueElement(taskInfo, dataPoints);
+        List<QueueElement> data = dataPoints2QueueElement(taskInfo, dataPoints);
         if (data == null) {
             return;
         }
         LOG.info("data size is " + data.size());
         //push to redis
-        for (QueueData e : data) {
+        for (QueueElement e : data) {
             try {
                 getJedisInstance().rpush(e.queueName, e.data);
             } catch (Exception e1) {
@@ -89,7 +89,7 @@ public class RedisMetricsCollector extends ConsumerBase {
         }
     }
 
-    protected List<QueueData> dataPoints2QueueElement(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
+    protected List<QueueElement> dataPoints2QueueElement(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
         //data format is "[srcComponentId-taskId]:timestamp:data point json"
         StringBuilder sb = new StringBuilder();
         sb.append('[').append(taskInfo.srcComponentId).append('-').append(taskInfo.srcTaskId).append("]:");
@@ -100,7 +100,7 @@ public class RedisMetricsCollector extends ConsumerBase {
             metrics.put(dataPoint.name, dataPoint.value);
         }
         sb.append(JSONValue.toJSONString(metrics));
-        return Collections.singletonList(new QueueData(queueName, sb.toString()));
+        return Collections.singletonList(new QueueElement(queueName, sb.toString()));
     }
 
 

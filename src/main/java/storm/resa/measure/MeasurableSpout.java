@@ -5,15 +5,15 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import storm.resa.simulate.TupleCompletedMetric;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by ding on 14-3-19.
  */
-public class TracedSpout implements IRichSpout {
+public class MeasurableSpout implements IRichSpout {
 
     private static class MsgIdWrapper {
         final String traceId;
@@ -28,17 +28,26 @@ public class TracedSpout implements IRichSpout {
 
     private IRichSpout delegate;
     private TraceIdGenerator.OfSpout traceIdGenerator;
-    private transient TupleCompletedMetric completedMetric;
+    private transient CompletedMetric completedMetric;
 
-    public TracedSpout(IRichSpout delegate, TraceIdGenerator.OfSpout traceIdGenerator) {
+    public MeasurableSpout(IRichSpout delegate, TraceIdGenerator.OfSpout traceIdGenerator) {
         this.delegate = delegate;
         this.traceIdGenerator = traceIdGenerator;
     }
 
+    public MeasurableSpout(IRichSpout delegate) {
+        this(delegate, null);
+    }
+
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        completedMetric = context.registerMetric("tuple-completed", new TupleCompletedMetric(), 60);
+        completedMetric = context.registerMetric("tuple-completed", new CompletedMetric(traceIdGenerator == null), 10);
+        if (traceIdGenerator == null) {
+            AtomicLong innerId = new AtomicLong();
+            traceIdGenerator = (streamId, tuple, messageId) -> String.valueOf(innerId.getAndIncrement());
+        }
         delegate.open(conf, context, new SpoutOutputCollector(new ISpoutOutputCollector() {
+
             @Override
             public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
                 return collector.emit(streamId, tuple,
@@ -63,7 +72,6 @@ public class TracedSpout implements IRichSpout {
                 }
                 return messageId;
             }
-
         }));
     }
 
