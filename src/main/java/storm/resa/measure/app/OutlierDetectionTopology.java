@@ -60,8 +60,12 @@ public class OutlierDetectionTopology {
                 (streamId, tuple, messageId) -> tuple.get(0) + "-" + tuple.get(2));
         builder.setSpout("objectSpout", spout, ConfigUtil.getInt(conf, "spout.parallelism", 1));
 
-        TraceIdGenerator.OfBolt generator = (tuple) -> tuple.getValueByField(ObjectSpout.ID_FILED)
-                + "-" + tuple.getValueByField(ObjectSpout.TIME_FILED);
+        int boltSampleRate = ConfigUtil.getInt(conf, "bolt.sample.rate", 1);
+        TraceIdGenerator.OfBolt generator = (tuple) -> {
+            String id = tuple.getValueByField(ObjectSpout.ID_FILED)
+                    + "-" + tuple.getValueByField(ObjectSpout.TIME_FILED);
+            return id.hashCode() % boltSampleRate == 0 ? id : null;
+        };
 
         List<double[]> randVectors = generateRandomVectors(ConfigUtil.getIntThrow(conf, "projection.dimension"),
                 ConfigUtil.getIntThrow(conf, "projection.size"));

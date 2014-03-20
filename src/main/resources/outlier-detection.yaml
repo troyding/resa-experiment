@@ -15,6 +15,8 @@ detector.parallelism: 1
 
 updater.parallelism: 1
 
+bolt.sample.rate: 1
+
 #set worker count
 topology.workers: 1
 

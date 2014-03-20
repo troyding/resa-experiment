@@ -33,9 +33,13 @@ public class MeasurementCollector extends RedisMetricsCollector {
     }
 
     private void tupleFinished(String tupleId, Long completeLatency, List<QueueData> output) {
+        tupleFinished(tupleId, completeLatency, output, 0);
+    }
+
+    private void tupleFinished(String tupleId, Long completeLatency, List<QueueData> output, int tryCount) {
         // retrieve completed tuple
         Map<String, Object> data = paddingMetricsData.remove(tupleId);
-        if (data == null) {
+        if (data == null && tryCount < 3) {
             // No tuple metrics found, add it to waiting list
             // check it after 1 min
             while (true) {
@@ -47,11 +51,15 @@ public class MeasurementCollector extends RedisMetricsCollector {
                     } catch (InterruptedException e) {
                     }
                 } else {
-                    waitingTuples.put(nextCheckTime, new Object[]{tupleId, completeLatency});
+                    waitingTuples.put(nextCheckTime, new Object[]{tupleId, completeLatency, tryCount + 1});
                     break;
                 }
             }
         } else {
+            // no other metric was found, just output "_complete-latency"
+            if (data == null) {
+                data = new HashMap<>();
+            }
             //add complete-lentency to output json
             data.put("_complete-latency", completeLatency.intValue());
             // convert data to json string and add it to redis queue
@@ -68,14 +76,12 @@ public class MeasurementCollector extends RedisMetricsCollector {
         // The data structure of output metrics is map
         if (spouts.contains(taskInfo.srcComponentId)) {
             ArrayList<QueueData> queueDatas = new ArrayList<QueueData>();
-            for (DataPoint dataPoint : dataPoints) {
-                if (dataPoint.name.equals("tuple-completed")) {
-                    Map<String, Long> completedData = (Map<String, Long>) dataPoint.value;
-                    for (Map.Entry<String, Long> e : completedData.entrySet()) {
-                        tupleFinished(e.getKey(), e.getValue(), queueDatas);
-                    }
+            dataPoints.stream().filter((p) -> p.name.equals("tuple-completed")).forEach((dataPoint) -> {
+                Map<String, Long> completedData = (Map<String, Long>) dataPoint.value;
+                for (Map.Entry<String, Long> e : completedData.entrySet()) {
+                    tupleFinished(e.getKey(), e.getValue(), queueDatas);
                 }
-            }
+            });
             return queueDatas;
         } else {
             for (DataPoint dataPoint : dataPoints) {
@@ -98,7 +104,7 @@ public class MeasurementCollector extends RedisMetricsCollector {
                 for (Map.Entry<Long, Object[]> e : candidates.entrySet()) {
                     waitingTuples.remove(e.getKey());
                     Object[] v = e.getValue();
-                    tupleFinished((String) v[0], (Long) v[1], queueDatas);
+                    tupleFinished((String) v[0], (Long) v[1], queueDatas, (Integer) v[2]);
                 }
                 return queueDatas;
             }
