@@ -10,8 +10,9 @@ import storm.resa.app.cod.Detector;
 import storm.resa.app.cod.ObjectSpout;
 import storm.resa.app.cod.Projection;
 import storm.resa.app.cod.Updater;
-import storm.resa.measure.MeasurableBolt;
-import storm.resa.measure.MeasurableSpout;
+import storm.resa.measure.TracedMeasurementCollector;
+import storm.resa.measure.TracedBolt;
+import storm.resa.measure.TracedSpout;
 import storm.resa.measure.TraceIdGenerator;
 import storm.resa.util.ConfigUtil;
 
@@ -56,7 +57,7 @@ public class OutlierDetectionTopology {
         String queue = (String) conf.get("redis.queue");
         int objectCount = ConfigUtil.getIntThrow(conf, "a-spout.object.size");
         // use objectId+time as traceID
-        IRichSpout spout = new MeasurableSpout(new ObjectSpout(host, port, queue, objectCount),
+        IRichSpout spout = new TracedSpout(new ObjectSpout(host, port, queue, objectCount),
                 (streamId, tuple, messageId) -> tuple.get(0) + "-" + tuple.get(2));
         builder.setSpout("objectSpout", spout, ConfigUtil.getInt(conf, "a-spout.parallelism", 1));
 
@@ -69,18 +70,18 @@ public class OutlierDetectionTopology {
 
         List<double[]> randVectors = generateRandomVectors(ConfigUtil.getIntThrow(conf, "a-projection.dimension"),
                 ConfigUtil.getIntThrow(conf, "a-projection.size"));
-        IRichBolt projectionBolt = new MeasurableBolt(new Projection(new ArrayList<>(randVectors)), generator);
+        IRichBolt projectionBolt = new TracedBolt(new Projection(new ArrayList<>(randVectors)), generator);
         builder.setBolt("projection", projectionBolt,
                 ConfigUtil.getInt(conf, "a-projection.parallelism", 1)).shuffleGrouping("objectSpout");
 
         int minNeighborCount = ConfigUtil.getIntThrow(conf, "a-detector.neighbor.count.min");
         double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "a-detector.neighbor.distance.max");
-        IRichBolt detectorBolt = new MeasurableBolt(new Detector(objectCount, minNeighborCount, maxNeighborDistance),
+        IRichBolt detectorBolt = new TracedBolt(new Detector(objectCount, minNeighborCount, maxNeighborDistance),
                 generator);
         builder.setBolt("detector", detectorBolt, ConfigUtil.getInt(conf, "a-detector.parallelism", 1))
                 .fieldsGrouping("projection", new Fields(Projection.PROJECTION_ID_FIELD));
 
-        IRichBolt updaterBolt = new MeasurableBolt(new Updater(randVectors.size()), generator);
+        IRichBolt updaterBolt = new TracedBolt(new Updater(randVectors.size()), generator);
         builder.setBolt("updater", updaterBolt, ConfigUtil.getInt(conf, "a-updater.parallelism", 1))
                 .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
 
@@ -92,7 +93,7 @@ public class OutlierDetectionTopology {
         if (queueName != null) {
             metricsConsumerArgs.put(RedisMetricsCollector.REDIS_QUEUE_NAME, queueName);
         }
-        conf.registerMetricsConsumer(MeasurementCollector.class, metricsConsumerArgs, 1);
+        conf.registerMetricsConsumer(TracedMeasurementCollector.class, metricsConsumerArgs, 1);
 
         StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
     }

@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Created by ding on 14-1-28.
  */
-public class ExecuteMetric implements IMetric {
+public class TracedExecuteMetric implements IMetric {
 
     private Map<String, List<String>> data = new HashMap<String, List<String>>();
 

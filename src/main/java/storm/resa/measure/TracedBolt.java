@@ -11,20 +11,20 @@ import java.util.Map;
 /**
  * Created by ding on 14-1-27.
  */
-public class MeasurableBolt implements IRichBolt {
+public class TracedBolt implements IRichBolt {
 
-    private transient ExecuteMetric executeMetric;
+    private transient TracedExecuteMetric executeMetric;
     private IRichBolt delegate;
     private TraceIdGenerator.OfBolt traceIdGenerator;
 
-    public MeasurableBolt(IRichBolt delegate, TraceIdGenerator.OfBolt generator) {
+    public TracedBolt(IRichBolt delegate, TraceIdGenerator.OfBolt generator) {
         this.delegate = delegate;
         this.traceIdGenerator = generator;
     }
 
     @Override
     public void prepare(Map map, TopologyContext context, OutputCollector outputCollector) {
-        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new ExecuteMetric(), 10);
+        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new TracedExecuteMetric(), 10);
         delegate.prepare(map, context, outputCollector);
     }
 

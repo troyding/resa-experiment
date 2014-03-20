@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * Created by ding on 14-1-27.
  */
-public class TupleCompletedMetric implements IMetric {
+public class TracedCompletedMetric implements IMetric {
 
     private Map<String, Long> paddingTuples = new HashMap<String, Long>();
     private Map<String, Long> completedTuples = new HashMap<String, Long>();

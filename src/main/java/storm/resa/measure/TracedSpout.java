@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * Created by ding on 14-3-19.
  */
-public class MeasurableSpout implements IRichSpout {
+public class TracedSpout implements IRichSpout {
 
     private static class MsgIdWrapper {
         final String traceId;
@@ -30,7 +30,7 @@ public class MeasurableSpout implements IRichSpout {
     private TraceIdGenerator.OfSpout traceIdGenerator;
     private transient TupleCompletedMetric completedMetric;
 
-    public MeasurableSpout(IRichSpout delegate, TraceIdGenerator.OfSpout traceIdGenerator) {
+    public TracedSpout(IRichSpout delegate, TraceIdGenerator.OfSpout traceIdGenerator) {
         this.delegate = delegate;
         this.traceIdGenerator = traceIdGenerator;
     }

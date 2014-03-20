@@ -1,4 +1,4 @@
-package storm.resa.measure.app;
+package storm.resa.measure;
 
 import backtype.storm.generated.StormTopology;
 import backtype.storm.task.IErrorReporter;
@@ -12,7 +12,7 @@ import java.util.*;
 /**
  * Created by ding on 14-1-27.
  */
-public class MeasurementCollector extends RedisMetricsCollector {
+public class TracedMeasurementCollector extends RedisMetricsCollector {
 
     // map data: <sid> --->  <component> ---> <metrics>
     private transient Map<String, Map<String, Object>> paddingMetricsData = new HashMap<String, Map<String, Object>>();
