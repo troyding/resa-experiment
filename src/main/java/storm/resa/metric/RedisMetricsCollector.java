@@ -10,7 +10,7 @@ import java.util.*;
 
 /**
  * Write metrics to redis server.
- * <p/>
+ * <p>
  * Created by ding on 13-12-11.
  */
 public class RedisMetricsCollector extends ConsumerBase {
@@ -43,7 +43,7 @@ public class RedisMetricsCollector extends ConsumerBase {
         Map<String, Object> regArgu = (Map<String, Object>) registrationArgument;
         jedisHost = (String) regArgu.get(REDIS_HOST);
         jedisPort = ((Number) regArgu.get(REDIS_PORT)).intValue();
-        queueName = regArgu.get(REDIS_QUEUE_NAME).toString();
+        queueName = (String) regArgu.get(REDIS_QUEUE_NAME);
         // queue name is not exist, use topology id as default
         if (queueName == null) {
             queueName = context.getStormId();
