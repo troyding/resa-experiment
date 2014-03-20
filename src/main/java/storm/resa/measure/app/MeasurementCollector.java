@@ -43,7 +43,7 @@ public class MeasurementCollector extends RedisMetricsCollector {
             // No tuple metrics found, add it to waiting list
             // check it after 1 min
             while (true) {
-                Long nextCheckTime = System.currentTimeMillis() + 60000;
+                Long nextCheckTime = System.currentTimeMillis() + 20000;
                 if (waitingTuples.containsKey(nextCheckTime)) {
                     // avoid time key conflict
                     try {
