@@ -42,29 +42,35 @@ public class AggOutlierDetection {
         }
         TopologyBuilder builder = new TopologyBuilder();
 
+        int numWorkers = ConfigUtil.getInt(conf, "a-worker.count", 1);
+        int numAckers = ConfigUtil.getInt(conf, "a-acker.count", 1);
+
+        conf.setNumWorkers(numWorkers);
+        conf.setNumAckers(numAckers);
+
         //set spout
         String host = (String) conf.get("redis.host");
         int port = ((Number) conf.get("redis.port")).intValue();
         String queue = (String) conf.get("redis.queue");
-        int objectCount = ConfigUtil.getIntThrow(conf, "spout.object.size");
+        int objectCount = ConfigUtil.getIntThrow(conf, "a-spout.object.size");
         // use objectId+time as traceID
         IRichSpout spout = new MeasurableSpout(new ObjectSpout(host, port, queue, objectCount));
-        builder.setSpout("objectSpout", spout, ConfigUtil.getInt(conf, "spout.parallelism", 1));
+        builder.setSpout("objectSpout", spout, ConfigUtil.getInt(conf, "a-spout.parallelism", 1));
 
-        List<double[]> randVectors = generateRandomVectors(ConfigUtil.getIntThrow(conf, "projection.dimension"),
-                ConfigUtil.getIntThrow(conf, "projection.size"));
+        List<double[]> randVectors = generateRandomVectors(ConfigUtil.getIntThrow(conf, "a-projection.dimension"),
+                ConfigUtil.getIntThrow(conf, "a-projection.size"));
         IRichBolt projectionBolt = new WinAggregateBolt(new Projection(new ArrayList<>(randVectors)));
         builder.setBolt("projection", projectionBolt,
-                ConfigUtil.getInt(conf, "projection.parallelism", 1)).shuffleGrouping("objectSpout");
+                ConfigUtil.getInt(conf, "a-projection.parallelism", 1)).shuffleGrouping("objectSpout");
 
-        int minNeighborCount = ConfigUtil.getIntThrow(conf, "detector.neighbor.count.min");
-        double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "detector.neighbor.distance.max");
+        int minNeighborCount = ConfigUtil.getIntThrow(conf, "a-detector.neighbor.count.min");
+        double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "a-detector.neighbor.distance.max");
         IRichBolt detectorBolt = new WinAggregateBolt(new Detector(objectCount, minNeighborCount, maxNeighborDistance));
-        builder.setBolt("detector", detectorBolt, ConfigUtil.getInt(conf, "detector.parallelism", 1))
+        builder.setBolt("detector", detectorBolt, ConfigUtil.getInt(conf, "a-detector.parallelism", 1))
                 .fieldsGrouping("projection", new Fields(Projection.PROJECTION_ID_FIELD));
 
         IRichBolt updaterBolt = new WinAggregateBolt(new Updater(randVectors.size()));
-        builder.setBolt("updater", updaterBolt, ConfigUtil.getInt(conf, "updater.parallelism", 1))
+        builder.setBolt("updater", updaterBolt, ConfigUtil.getInt(conf, "a-updater.parallelism", 1))
                 .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
 
         Map<String, Object> metricsConsumerArgs = new HashMap<>();
