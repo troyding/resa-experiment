@@ -51,6 +51,12 @@ public class TracedOutlierDetection {
         }
         TopologyBuilder builder = new TopologyBuilder();
 
+        int numWorkers = ConfigUtil.getInt(conf, "a-worker.count", 1);
+        int numAckers = ConfigUtil.getInt(conf, "a-acker.count", 1);
+
+        conf.setNumWorkers(numWorkers);
+        conf.setNumAckers(numAckers);
+
         //set spout
         String host = (String) conf.get("redis.host");
         int port = ((Number) conf.get("redis.port")).intValue();
