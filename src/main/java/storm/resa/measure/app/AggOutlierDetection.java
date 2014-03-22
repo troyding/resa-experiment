@@ -48,6 +48,7 @@ public class AggOutlierDetection {
         conf.setNumWorkers(numWorkers);
         conf.setNumAckers(numAckers);
         conf.setDebug(false);
+        conf.put("topology.builtin.metrics.bucket.size.secs", 60);
 
         //set spout
         String host = (String) conf.get("redis.host");
