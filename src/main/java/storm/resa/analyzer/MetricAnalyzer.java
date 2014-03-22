@@ -31,10 +31,6 @@ public class MetricAnalyzer {
             total_2 = total_2 + num*num;
         }
 
-///        double getAvg() {
-///            return total / count;
-///        }
-   
         double getTotal() {
         	return total;
         }
@@ -61,7 +57,6 @@ public class MetricAnalyzer {
         	return getAvg2() - getAvg()*getAvg();
         }        
     }
-
 
     public void calcAvg() {
         long totalCompleteLatency = 0;

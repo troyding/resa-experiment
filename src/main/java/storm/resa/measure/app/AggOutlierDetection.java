@@ -47,6 +47,7 @@ public class AggOutlierDetection {
 
         conf.setNumWorkers(numWorkers);
         conf.setNumAckers(numAckers);
+        conf.setDebug(false);
 
         //set spout
         String host = (String) conf.get("redis.host");

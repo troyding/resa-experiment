@@ -41,13 +41,11 @@ public class JedisResource implements Iterable<Object> {
         public void remove() {
             throw new UnsupportedOperationException();
         }
-
     }
 
     private Jedis getJedis() {
         return jedis;
     }
-
 
     @Override
     public Iterator<Object> iterator() {
@@ -55,7 +53,9 @@ public class JedisResource implements Iterable<Object> {
     }
 
     public static void main(String[] args) {
-        MetricAnalyzer analyzer = new MetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
-        analyzer.calcAvg();
+        ///MetricAnalyzer analyzer = new MetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
+        ///analyzer.calcAvg();
+        AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
+        aggAnalyzer.calcAvg();
     }
 }
