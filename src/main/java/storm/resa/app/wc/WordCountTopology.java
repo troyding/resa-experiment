@@ -50,6 +50,11 @@ public class WordCountTopology {
         public Map<String, Object> getComponentConfiguration() {
             return null;
         }
+
+        @Override
+        public void cleanup() {
+            System.out.println("Split cleanup");
+        }
     }
 
     public static class WordCount extends BaseBasicBolt {
@@ -71,6 +76,11 @@ public class WordCountTopology {
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
             declarer.declare(new Fields("word", "count"));
+        }
+
+        @Override
+        public void cleanup() {
+            System.out.println("Word Counter cleanup");
         }
     }
 
