@@ -62,8 +62,9 @@ public class testUpdater implements IRichBolt {
 //                }
 //            });
         }
-        collector.ack(input);
+
         executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
+        collector.ack(input);
     }
 
     @Override

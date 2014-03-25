@@ -99,15 +99,13 @@ public class testDetector implements IRichBolt {
         context.neighborCount[objId] = newNeighborCount;
         outlier.set(objId, newNeighborCount < minNeighborCount);
 
-        long startEmitTime = 0, endEmitTime = 0;
+        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
         //if any objects missing, wait for it. This is used when system startup
         if (!anyObjectMissing) {
-            startEmitTime = System.currentTimeMillis();
             collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
-            endEmitTime = System.currentTimeMillis();
         }
         collector.ack(input);
-        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime + startEmitTime - endEmitTime));
+
     }
 
     protected boolean isNeighbor(double projVal1, double projVal2) {
