@@ -12,10 +12,10 @@ public class AggExecuteMetric implements IMetric {
 
     private static class Accumulator {
         private int count = 0;
-        private long sum = 0;
-        private long sumOfSquare = 0;
+        private double sum = 0;
+        private double sumOfSquare = 0;
 
-        void add(int num) {
+        void add(double num) {
             count++;
             sum = sum + num;
             sumOfSquare = sumOfSquare + num * num;
@@ -29,7 +29,7 @@ public class AggExecuteMetric implements IMetric {
 
     private Map<String, Accumulator> data = new HashMap<>();
 
-    public void addMetric(String key, int value) {
+    public void addMetric(String key, double value) {
         data.computeIfAbsent(key, (k) -> new Accumulator()).add(value);
     }
 

@@ -59,7 +59,7 @@ public class testDetector implements IRichBolt {
     @Override
     public void execute(Tuple input) {
         String id = input.getSourceComponent() + ":" + input.getSourceStreamId();
-        long arrivalTime = System.currentTimeMillis();
+        long arrivalTime = System.nanoTime();
 
         Integer projId = input.getIntegerByField(Projection.PROJECTION_ID_FIELD);
         Context context = objectContext.get(projId);
@@ -99,7 +99,10 @@ public class testDetector implements IRichBolt {
         context.neighborCount[objId] = newNeighborCount;
         outlier.set(objId, newNeighborCount < minNeighborCount);
 
-        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
+        long elapse = System.nanoTime() - arrivalTime;
+        if (elapse > 0) {
+            executeMetric.addMetric(id, elapse / 1000000.0);
+        }
         //if any objects missing, wait for it. This is used when system startup
         if (!anyObjectMissing) {
             collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));

@@ -39,7 +39,7 @@ public class testProjection implements IRichBolt {
     @Override
     public void execute(Tuple input) {
         String id = input.getSourceComponent() + ":" + input.getSourceStreamId();
-        long arrivalTime = System.currentTimeMillis();
+        long arrivalTime = System.nanoTime();
 
         Object objId = input.getValueByField(ObjectSpout.ID_FILED);
         Object time = input.getValueByField(ObjectSpout.TIME_FILED);
@@ -50,7 +50,10 @@ public class testProjection implements IRichBolt {
             val[i] = innerProduct(randomVectors.get(i), v);
         });
 
-        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
+        long elapse = System.nanoTime() - arrivalTime;
+        if (elapse > 0) {
+            executeMetric.addMetric(id, elapse / 1000000.0);
+        }
 
         IntStream.range(0, randomVectors.size()).forEach((i) -> {
             collector.emit(input, new Values(objId, i, val[i], time));

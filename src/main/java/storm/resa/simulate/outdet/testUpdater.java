@@ -36,7 +36,7 @@ public class testUpdater implements IRichBolt {
     public void execute(Tuple input) {
 
         String id = input.getSourceComponent() + ":" + input.getSourceStreamId();
-        long arrivalTime = System.currentTimeMillis();
+        long arrivalTime = System.nanoTime();
 
         String key = input.getValueByField(ObjectSpout.TIME_FILED) + "-" + input.getValueByField(ObjectSpout.ID_FILED);
         List<BitSet> ret = padding.get(key);
@@ -63,7 +63,10 @@ public class testUpdater implements IRichBolt {
 //            });
         }
 
-        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
+        long elapse = System.nanoTime() - arrivalTime;
+        if (elapse > 0) {
+            executeMetric.addMetric(id, elapse / 1000000.0);
+        }
         collector.ack(input);
     }
 

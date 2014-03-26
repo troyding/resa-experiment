@@ -29,9 +29,13 @@ public class WinAggregateBolt implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         String id = tuple.getSourceComponent() + ":" + tuple.getSourceStreamId();
-        long arrivalTime = System.currentTimeMillis();
+        long arrivalTime = System.nanoTime();
         delegate.execute(tuple);
-        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
+        long elapse = System.nanoTime() - arrivalTime;
+        // avoid numerical overflow
+        if (elapse > 0) {
+            executeMetric.addMetric(id, elapse / 1000000.0);
+        }
     }
 
     @Override
