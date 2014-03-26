@@ -82,8 +82,8 @@ public class testDetector implements IRichBolt {
                 continue;
             }
             boolean isNeighNow = isNeighbor(newProjValue, context.projectionValues[i]);
-            boolean isNeighPast = context.projectionValues[objId] == DEFAULT_PROJECTION_VALUE ?
-                    false : isNeighbor(context.projectionValues[objId], context.projectionValues[i]);
+            boolean isNeighPast = context.projectionValues[objId] != DEFAULT_PROJECTION_VALUE
+                    && isNeighbor(context.projectionValues[objId], context.projectionValues[i]);
             if (isNeighPast && !isNeighNow) {
                 context.neighborCount[i]--;
             } else if (!isNeighPast && isNeighNow) {
@@ -99,7 +99,10 @@ public class testDetector implements IRichBolt {
         context.neighborCount[objId] = newNeighborCount;
         outlier.set(objId, newNeighborCount < minNeighborCount);
 
-        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
+        long elapse = System.nanoTime() - arrivalTime;
+        if (elapse > 0) {
+            executeMetric.addMetric(id, elapse / 1000000.0);
+        }
         //if any objects missing, wait for it. This is used when system startup
         if (!anyObjectMissing) {
             collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));

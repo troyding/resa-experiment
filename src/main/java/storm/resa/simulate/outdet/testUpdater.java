@@ -63,7 +63,10 @@ public class testUpdater implements IRichBolt {
 //            });
         }
 
-        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
+        long elapse = System.nanoTime() - arrivalTime;
+        if (elapse > 0) {
+            executeMetric.addMetric(id, elapse / 1000000.0);
+        }
         collector.ack(input);
     }
 

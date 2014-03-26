@@ -50,7 +50,10 @@ public class testProjection implements IRichBolt {
             val[i] = innerProduct(randomVectors.get(i), v);
         });
 
-        executeMetric.addMetric(id, (int) (System.currentTimeMillis() - arrivalTime));
+        long elapse = System.nanoTime() - arrivalTime;
+        if (elapse > 0) {
+            executeMetric.addMetric(id, elapse / 1000000.0);
+        }
 
         IntStream.range(0, randomVectors.size()).forEach((i) -> {
             collector.emit(input, new Values(objId, i, val[i], time));
