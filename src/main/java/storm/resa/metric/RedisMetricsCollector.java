@@ -77,8 +77,8 @@ public class RedisMetricsCollector extends ConsumerBase {
         if (data == null) {
             return;
         }
-        LOG.info("data size is " + data.size());
-        //push to redis
+        // LOG.debug("data size is " + data.size());
+        // push to redis
         for (QueueElement e : data) {
             try {
                 getJedisInstance().rpush(e.queueName, e.data);

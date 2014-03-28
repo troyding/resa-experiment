@@ -6,6 +6,7 @@ import backtype.storm.task.TopologyContext;
 import org.codehaus.jackson.map.ObjectMapper;
 import storm.resa.metric.RedisMetricsCollector;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,24 +30,37 @@ public class WinAggMeasurementCollector extends RedisMetricsCollector {
         }
     }
 
+    private String object2Json(Object o) {
+        try {
+            return objectMapper.writeValueAsString(o);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     protected List<QueueElement> dataPoints2QueueElement(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
-        String filterKey, outKey;
         if (spouts.contains(taskInfo.srcComponentId)) {
-            filterKey = "tuple-completed";
-            outKey = "_complete-latency";
+            return dataPoints.stream().filter((p) -> p.name.equals("tuple-completed")).map((dataPoint) ->
+                    new QueueElement(queueName, taskInfo.srcComponentId + "->"
+                            + object2Json(Collections.singletonMap("_complete-latency", dataPoint.value))))
+                    .collect(Collectors.toList());
         } else {
-            filterKey = taskInfo.srcComponentId + "-exe";
-            outKey = taskInfo.srcComponentId;
+            Map<String, Object> ret = new HashMap<>();
+            dataPoints.stream().forEach((dataPoint) -> {
+                if (dataPoint.name.equals(taskInfo.srcComponentId + "-exe")) {
+                    ret.put("execute", dataPoint.value);
+                } else if (dataPoint.name.equals("__sendqueue")) {
+                    if (!((Map) dataPoint.value).isEmpty()) {
+                        ret.put("send-queue", dataPoint.value);
+                    }
+                } else if (dataPoint.name.equals("__receive")) {
+                    if (!((Map) dataPoint.value).isEmpty()) {
+                        ret.put("recv-queue", dataPoint.value);
+                    }
+                }
+            });
+            return Arrays.asList(new QueueElement(queueName, taskInfo.srcComponentId + "->" + object2Json(ret)));
         }
-        return dataPoints.stream().filter((p) -> p.name.equals(filterKey)).map((dataPoint) -> {
-            try {
-                String json = objectMapper.writeValueAsString(Collections.singletonMap(outKey,
-                        dataPoint.value));
-                return new QueueElement(queueName, json);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }).collect(Collectors.toList());
     }
 }

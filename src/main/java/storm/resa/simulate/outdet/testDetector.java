@@ -82,8 +82,8 @@ public class testDetector implements IRichBolt {
                 continue;
             }
             boolean isNeighNow = isNeighbor(newProjValue, context.projectionValues[i]);
-            boolean isNeighPast = context.projectionValues[objId] == DEFAULT_PROJECTION_VALUE ?
-                    false : isNeighbor(context.projectionValues[objId], context.projectionValues[i]);
+            boolean isNeighPast = context.projectionValues[objId] != DEFAULT_PROJECTION_VALUE
+                    && isNeighbor(context.projectionValues[objId], context.projectionValues[i]);
             if (isNeighPast && !isNeighNow) {
                 context.neighborCount[i]--;
             } else if (!isNeighPast && isNeighNow) {

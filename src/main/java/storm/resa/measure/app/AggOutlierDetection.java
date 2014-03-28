@@ -76,15 +76,15 @@ public class AggOutlierDetection {
         builder.setBolt("updater", updaterBolt, ConfigUtil.getInt(conf, "a-updater.parallelism", 1))
                 .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
 
-        Map<String, Object> metricsConsumerArgs = new HashMap<>();
-        metricsConsumerArgs.put(RedisMetricsCollector.REDIS_HOST, host);
-        metricsConsumerArgs.put(RedisMetricsCollector.REDIS_PORT, port);
-        metricsConsumerArgs.put(ConsumerBase.METRICS_NAME, Arrays.asList("tuple-completed"));
+        Map<String, Object> consumerArgs = new HashMap<>();
+        consumerArgs.put(RedisMetricsCollector.REDIS_HOST, host);
+        consumerArgs.put(RedisMetricsCollector.REDIS_PORT, port);
+        consumerArgs.put(ConsumerBase.METRICS_NAME, Arrays.asList("tuple-completed", "__sendqueue", "__receive"));
         String queueName = (String) conf.get("metrics.output.queue-name");
         if (queueName != null) {
-            metricsConsumerArgs.put(RedisMetricsCollector.REDIS_QUEUE_NAME, queueName);
+            consumerArgs.put(RedisMetricsCollector.REDIS_QUEUE_NAME, queueName);
         }
-        conf.registerMetricsConsumer(WinAggMeasurementCollector.class, metricsConsumerArgs, 1);
+        conf.registerMetricsConsumer(WinAggMeasurementCollector.class, consumerArgs, 1);
 
         StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
     }
