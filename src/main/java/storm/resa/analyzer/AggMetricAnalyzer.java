@@ -125,14 +125,14 @@ public class AggMetricAnalyzer {
 
                     for (Map.Entry<String, Object> innerE : ((Map<String, Object>)e.getValue()).entrySet()) {
                         String statName = innerE.getKey();
-                        String element = (String)innerE.getValue();
+                        int element = (int)(innerE.getValue());
 
                         if (statName.equals("sampleCount")){
-                            sampleCnt = Long.valueOf(element);
+                            sampleCnt = (long)element;
                         } else if (statName.equals("totalQueueLen")) {
-                            totalQLen = Long.valueOf(element);
+                            totalQLen = (long)element;
                         } else if (statName.equals("totalCount")){
-                            totalArrivalCnt = Long.valueOf(element);
+                            totalArrivalCnt = (long)element;
                         }
                     }
 
