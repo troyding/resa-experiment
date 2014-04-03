@@ -60,7 +60,8 @@ public class WinAggMeasurementCollector extends RedisMetricsCollector {
                     }
                 }
             });
-            return Arrays.asList(new QueueElement(queueName, taskInfo.srcComponentId + "->" + object2Json(ret)));
+            String data = taskInfo.srcComponentId + ':' + taskInfo.srcTaskId + "->" + object2Json(ret);
+            return Arrays.asList(new QueueElement(queueName, data));
         }
     }
 }
