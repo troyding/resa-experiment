@@ -1,6 +1,5 @@
 package storm.resa.app.wc;
 
-import backtype.storm.metric.api.MultiCountMetric;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -19,15 +18,12 @@ public class RandomSentenceSpout extends BaseRichSpout {
 
     private transient SpoutOutputCollector _collector;
     private transient Random _rand;
-    private transient MultiCountMetric counter;
 
     @Override
     public void open(Map conf, TopologyContext context,
                      SpoutOutputCollector collector) {
         _collector = collector;
         _rand = new Random();
-        counter = context.registerMetric("sentences", new MultiCountMetric(),
-                60);
     }
 
     @Override
@@ -47,17 +43,14 @@ public class RandomSentenceSpout extends BaseRichSpout {
                 "get breaking national and world news broadcast video coverage and exclusive interviews"};
         String sentence = sentences[_rand.nextInt(sentences.length)];
         _collector.emit(new Values(sentence), UUID.randomUUID().toString());
-        counter.scope("emited").incr();
     }
 
     @Override
     public void ack(Object id) {
-        counter.scope("acked").incr();
     }
 
     @Override
     public void fail(Object id) {
-        counter.scope("failed").incr();
     }
 
     @Override
