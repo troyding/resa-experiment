@@ -19,6 +19,13 @@ import java.util.stream.IntStream;
  */
 public class TopologyHelper {
 
+    /**
+     * Get a running topology's details.
+     *
+     * @param topoName topology's name
+     * @param conf     storm's conf, used to connect nimbus
+     * @return null if topology is not exist, otherwise a TopologyDetails instance
+     */
     public static TopologyDetails getTopologyDetails(String topoName, Map<String, Object> conf) {
         NimbusClient nimbusClient = NimbusClient.getConfiguredClient(conf);
         StormTopology topology;
@@ -39,7 +46,6 @@ public class TopologyHelper {
             topologyInfo = nimbus.getTopologyInfo(topoId);
             topologyConf = (Map) JSONValue.parse(nimbus.getTopologyConf(topoId));
         } catch (NotAliveException | TException e) {
-            e.printStackTrace();
             return null;
         } finally {
             nimbusClient.close();
@@ -49,6 +55,12 @@ public class TopologyHelper {
         return new TopologyDetails(topologyInfo.get_id(), topologyConf, topology, numWorkers, exe2Components);
     }
 
+    /**
+     * Get component tasks from TopologyDetails object
+     *
+     * @param topologyDetails
+     * @return
+     */
     public static Map<String, List<Integer>> componentToTasks(TopologyDetails topologyDetails) {
         return topologyDetails.getExecutorToComponent().entrySet().stream().collect(
                 Collectors.groupingBy(entry -> entry.getValue(),
