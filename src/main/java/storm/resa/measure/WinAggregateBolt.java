@@ -24,7 +24,7 @@ public class WinAggregateBolt implements IRichBolt {
 
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector outputCollector) {
-        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new CMVMetric(),
+        executeMetric = context.registerMetric("execute", new CMVMetric(),
                 Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)));
         delegate.prepare(conf, context, outputCollector);
     }
