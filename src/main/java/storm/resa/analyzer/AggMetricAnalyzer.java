@@ -107,8 +107,8 @@ public class AggMetricAnalyzer {
     public void calCMVStat() {
         Map<String, CntMeanVar> compAvg = new HashMap<String, CntMeanVar>();
 
-        Map<String[], ComponentAggResult> spoutResult = new HashMap<String[], ComponentAggResult>();
-        Map<String[], ComponentAggResult> boltResult = new HashMap<String[], ComponentAggResult>();
+        Map<String, ComponentAggResult> spoutResult = new HashMap<String, ComponentAggResult>();
+        Map<String, ComponentAggResult> boltResult = new HashMap<String, ComponentAggResult>();
 
         for (Object metricStr : dataStream) {
             ///Real example
@@ -131,7 +131,8 @@ public class AggMetricAnalyzer {
                 String componentName = componentFullName.split(":")[0];
                 String taskID = componentFullName.split(":")[1];
 
-                String[] cid = new String[]{componentName, taskID};
+                //String[] cid = new String[]{componentName, taskID};
+                String cid = componentFullName;
                 ComponentAggResult car = null;
                 if (componentData.containsKey(TupleCompleteLatencyString)) {
                     car = spoutResult.get(cid);
@@ -233,48 +234,57 @@ public class AggMetricAnalyzer {
         }
         ///System.out.println("complete latency avg:" + (totalCompleteLatency / count));
 
-        for (Map.Entry<String[], ComponentAggResult> e: spoutResult.entrySet()){
-            String[] cid = e.getKey();
+        for (Map.Entry<String, ComponentAggResult> e: spoutResult.entrySet()){
+            String cid = e.getKey();
+            String componentName = cid.split(":")[0];
+            String taskID = cid.split(":")[1];
+
             ComponentAggResult car = e.getValue();
             int tupleProcessCnt = car.tupleProcess.size();
 
-            System.out.println("ComponentName: " + cid[0] + ", taskID: " + cid[1] + ", type: " + car.getComponentType() + ", tupleProcessCnt: " + tupleProcessCnt);
-            System.out.println("----------------------------- SEND QUEUE Detail ----------------------------------------------");
+            System.out.println("-------------------------------------------------------------------------------");
+            System.out.println("ComponentName: " + componentName + ", taskID: " + taskID + ", type: " + car.getComponentType() + ", tupleProcessCnt: " + tupleProcessCnt);
+            ///System.out.println("---------------------------------------------------------------------------");
             System.out.println("SendQueue->SampleCnt: " + car.sendQueueSampleCnt.toCMVString());
             System.out.println("SendQueue->QueueLen: " + car.sendQueueLen.toCMVString());
             System.out.println("SendQueue->Arrival: " + car.sendArrivalCnt.toCMVString());
-            System.out.println("----------------------------- RECEIVE QUEUE Detail ----------------------------------------------");
+            ///System.out.println("---------------------------------------------------------------------------");
             System.out.println("RecvQueue->SampleCnt: " + car.recvQueueSampleCnt.toCMVString());
             System.out.println("RecvQueue->QueueLen: " + car.recvQueueLen.toCMVString());
             System.out.println("RecvQueue->Arrival: " + car.recvArrivalCnt.toCMVString());
-            System.out.println("----------------------------- Tuple Process Detail ----------------------------------------------");
+            ///System.out.println("---------------------------------------------------------------------------");
             if (tupleProcessCnt > 0) {
                 for (Map.Entry<String, CntMeanVar> innerE : car.tupleProcess.entrySet()) {
                     System.out.println(car.getProcessString() + "->" + innerE.getKey()+ ":" + innerE.getValue().toCMVString());
                 }
             }
+            System.out.println("-------------------------------------------------------------------------------");
         }
 
-        for (Map.Entry<String[], ComponentAggResult> e: boltResult.entrySet()){
-            String[] cid = e.getKey();
+        for (Map.Entry<String, ComponentAggResult> e: boltResult.entrySet()){
+            String cid = e.getKey();
+            String componentName = cid.split(":")[0];
+            String taskID = cid.split(":")[1];
             ComponentAggResult car = e.getValue();
             int tupleProcessCnt = car.tupleProcess.size();
 
-            System.out.println("ComponentName: " + cid[0] + ", taskID: " + cid[1] + ", type: " + car.getComponentType() + ", tupleProcessCnt: " + tupleProcessCnt);
-            System.out.println("----------------------------- SEND QUEUE Detail ----------------------------------------------");
+            System.out.println("-------------------------------------------------------------------------------");
+            System.out.println("ComponentName: " + componentName + ", taskID: " + taskID + ", type: " + car.getComponentType() + ", tupleProcessCnt: " + tupleProcessCnt);
+            ///System.out.println("----------------------------- SEND QUEUE Detail ----------------------------------------------");
             System.out.println("SendQueue->SampleCnt: " + car.sendQueueSampleCnt.toCMVString());
             System.out.println("SendQueue->QueueLen: " + car.sendQueueLen.toCMVString());
             System.out.println("SendQueue->Arrival: " + car.sendArrivalCnt.toCMVString());
-            System.out.println("----------------------------- RECEIVE QUEUE Detail ----------------------------------------------");
+            ///System.out.println("----------------------------- RECEIVE QUEUE Detail ----------------------------------------------");
             System.out.println("RecvQueue->SampleCnt: " + car.recvQueueSampleCnt.toCMVString());
             System.out.println("RecvQueue->QueueLen: " + car.recvQueueLen.toCMVString());
             System.out.println("RecvQueue->Arrival: " + car.recvArrivalCnt.toCMVString());
-            System.out.println("----------------------------- Tuple Process Detail ----------------------------------------------");
+            ///System.out.println("----------------------------- Tuple Process Detail ----------------------------------------------");
             if (tupleProcessCnt > 0) {
                 for (Map.Entry<String, CntMeanVar> innerE : car.tupleProcess.entrySet()) {
                     System.out.println(car.getProcessString() + "->" + innerE.getKey()+ ":" + innerE.getValue().toCMVString());
                 }
             }
+            System.out.println("-------------------------------------------------------------------------------");
         }
     }
 }
