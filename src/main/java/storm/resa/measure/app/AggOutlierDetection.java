@@ -57,7 +57,7 @@ public class AggOutlierDetection {
         String queue = (String) conf.get("redis.queue");
         int objectCount = ConfigUtil.getIntThrow(conf, "a-spout.object.size");
         // use objectId+time as traceID
-        IRichSpout spout = new MeasurableSpout(new ObjectSpout(host, port, queue, objectCount));
+        IRichSpout spout = new WinAggregateSpout(new ObjectSpout(host, port, queue, objectCount));
         builder.setSpout("objectSpout", spout, ConfigUtil.getInt(conf, "a-spout.parallelism", 1));
 
         List<double[]> randVectors = generateRandomVectors(ConfigUtil.getIntThrow(conf, "a-projection.dimension"),

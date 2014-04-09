@@ -56,7 +56,7 @@ public class MetricsCollector extends RedisMetricsCollector {
             data.put("_complete-latency", completeLatency.intValue());
             // convert data to json string and add it to redis queue
             try {
-                output.add(new QueueElement(queueName, objectMapper.writeValueAsString(data)));
+                output.add(createDefaultQueueElement(objectMapper.writeValueAsString(data)));
             } catch (IOException e) {
             }
         }

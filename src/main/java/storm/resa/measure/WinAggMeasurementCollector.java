@@ -8,12 +8,13 @@ import storm.resa.metric.RedisMetricsCollector;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Created by ding on 14-3-20.
  */
 public class WinAggMeasurementCollector extends RedisMetricsCollector {
+
+    private static final Set<String> QUEUE_METRIC_NAME = new HashSet<>(Arrays.asList("__sendqueue", "__receive"));
 
     private Set<String> spouts = new HashSet<String>();
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -25,9 +26,9 @@ public class WinAggMeasurementCollector extends RedisMetricsCollector {
         // get all spouts
         spouts.addAll(topology.get_spouts().keySet());
         // add bolt execute metrics
-        for (String name : topology.get_bolts().keySet()) {
-            addMetricName(name + "-exe");
-        }
+        topology.get_bolts().keySet().forEach(name -> addMetricName(name + "-exe"));
+        QUEUE_METRIC_NAME.forEach(name -> addMetricName(name));
+        addMetricName("complete-latency");
     }
 
     private String object2Json(Object o) {
@@ -38,30 +39,33 @@ public class WinAggMeasurementCollector extends RedisMetricsCollector {
         }
     }
 
+    private void addQueueMetric(DataPoint dataPoint, Map<String, Object> ret) {
+        if (!((Map) dataPoint.value).isEmpty()) {
+            ret.put(dataPoint.name.substring(2), dataPoint.value);
+        }
+    }
+
     @Override
     protected List<QueueElement> dataPoints2QueueElement(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
+        Map<String, Object> ret = new HashMap<>();
         if (spouts.contains(taskInfo.srcComponentId)) {
-            return dataPoints.stream().filter((p) -> p.name.equals("tuple-completed")).map((dataPoint) ->
-                    new QueueElement(queueName, taskInfo.srcComponentId + "->"
-                            + object2Json(Collections.singletonMap("_complete-latency", dataPoint.value))))
-                    .collect(Collectors.toList());
+            dataPoints.stream().forEach((dataPoint) -> {
+                if (dataPoint.name.equals("complete-latency")) {
+                    ret.put("complete-latency", dataPoint.value);
+                } else if (QUEUE_METRIC_NAME.contains(dataPoint.name)) {
+                    addQueueMetric(dataPoint, ret);
+                }
+            });
         } else {
-            Map<String, Object> ret = new HashMap<>();
             dataPoints.stream().forEach((dataPoint) -> {
                 if (dataPoint.name.equals(taskInfo.srcComponentId + "-exe")) {
                     ret.put("execute", dataPoint.value);
-                } else if (dataPoint.name.equals("__sendqueue")) {
-                    if (!((Map) dataPoint.value).isEmpty()) {
-                        ret.put("send-queue", dataPoint.value);
-                    }
-                } else if (dataPoint.name.equals("__receive")) {
-                    if (!((Map) dataPoint.value).isEmpty()) {
-                        ret.put("recv-queue", dataPoint.value);
-                    }
+                } else if (QUEUE_METRIC_NAME.contains(dataPoint.name)) {
+                    addQueueMetric(dataPoint, ret);
                 }
             });
-            String data = taskInfo.srcComponentId + ':' + taskInfo.srcTaskId + "->" + object2Json(ret);
-            return Arrays.asList(new QueueElement(queueName, data));
         }
+        String data = taskInfo.srcComponentId + ':' + taskInfo.srcTaskId + "->" + object2Json(ret);
+        return Arrays.asList(createDefaultQueueElement(data));
     }
 }

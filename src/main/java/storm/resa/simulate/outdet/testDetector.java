@@ -9,7 +9,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import storm.resa.app.cod.ObjectSpout;
 import storm.resa.app.cod.Projection;
-import storm.resa.measure.AggExecuteMetric;
+import storm.resa.measure.CMVMetric;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -41,7 +41,7 @@ public class testDetector implements IRichBolt {
     private int minNeighborCount;
     private Map<Integer, Context> objectContext;
     private OutputCollector collector;
-    private transient AggExecuteMetric executeMetric;
+    private transient CMVMetric executeMetric;
 
     public testDetector(int objectCount, int minNeighborCount, double maxNeighborDistance) {
         this.objectCount = objectCount;
@@ -53,7 +53,7 @@ public class testDetector implements IRichBolt {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         objectContext = new HashMap<>();
         this.collector = collector;
-        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new AggExecuteMetric(), 10);
+        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new CMVMetric(), 10);
     }
 
     @Override

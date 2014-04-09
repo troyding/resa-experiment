@@ -8,7 +8,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import storm.resa.app.cod.ObjectSpout;
-import storm.resa.measure.AggExecuteMetric;
+import storm.resa.measure.CMVMetric;
 
 import java.util.List;
 import java.util.Map;
@@ -24,7 +24,7 @@ public class testProjection implements IRichBolt {
 
     private List<double[]> randomVectors;
     private transient OutputCollector collector;
-    private transient AggExecuteMetric executeMetric;
+    private transient CMVMetric executeMetric;
 
     public testProjection(List<double[]> randomVectors) {
         this.randomVectors = randomVectors;
@@ -33,7 +33,7 @@ public class testProjection implements IRichBolt {
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
-        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new AggExecuteMetric(), 10);
+        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new CMVMetric(), 10);
     }
 
     @Override

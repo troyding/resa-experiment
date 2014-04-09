@@ -1,10 +1,12 @@
 package storm.resa.measure;
 
+import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.Utils;
 
 import java.util.Map;
 
@@ -13,7 +15,7 @@ import java.util.Map;
  */
 public class WinAggregateBolt implements IRichBolt {
 
-    private transient AggExecuteMetric executeMetric;
+    private transient CMVMetric executeMetric;
     private IRichBolt delegate;
 
     public WinAggregateBolt(IRichBolt delegate) {
@@ -21,19 +23,20 @@ public class WinAggregateBolt implements IRichBolt {
     }
 
     @Override
-    public void prepare(Map map, TopologyContext context, OutputCollector outputCollector) {
-        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new AggExecuteMetric(), 10);
-        delegate.prepare(map, context, outputCollector);
+    public void prepare(Map conf, TopologyContext context, OutputCollector outputCollector) {
+        executeMetric = context.registerMetric(context.getThisComponentId() + "-exe", new CMVMetric(),
+                Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)));
+        delegate.prepare(conf, context, outputCollector);
     }
 
     @Override
     public void execute(Tuple tuple) {
-        String id = tuple.getSourceComponent() + ":" + tuple.getSourceStreamId();
         long arrivalTime = System.nanoTime();
         delegate.execute(tuple);
         long elapse = System.nanoTime() - arrivalTime;
         // avoid numerical overflow
         if (elapse > 0) {
+            String id = tuple.getSourceComponent() + ":" + tuple.getSourceStreamId();
             executeMetric.addMetric(id, elapse / 1000000.0);
         }
     }

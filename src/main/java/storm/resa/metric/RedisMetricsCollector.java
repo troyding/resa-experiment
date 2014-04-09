@@ -34,7 +34,7 @@ public class RedisMetricsCollector extends ConsumerBase {
     private transient Jedis jedis;
     private String jedisHost;
     private int jedisPort;
-    protected String queueName;
+    private String queueName;
 
     @Override
     public void prepare(Map stormConf, Object registrationArgument, TopologyContext context,
@@ -101,6 +101,10 @@ public class RedisMetricsCollector extends ConsumerBase {
         }
         sb.append(JSONValue.toJSONString(metrics));
         return Collections.singletonList(new QueueElement(queueName, sb.toString()));
+    }
+
+    protected QueueElement createDefaultQueueElement(String data) {
+        return new QueueElement(queueName, data);
     }
 
 
