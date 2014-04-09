@@ -8,27 +8,35 @@ import storm.resa.metric.RedisMetricsCollector;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by ding on 14-3-20.
  */
 public class WinAggMeasurementCollector extends RedisMetricsCollector {
 
-    private static final Set<String> QUEUE_METRIC_NAME = new HashSet<>(Arrays.asList("__sendqueue", "__receive"));
+    private static final Map<String, String> METRICS_NAME_MAPPING = new HashMap<>();
 
-    private Set<String> spouts = new HashSet<String>();
+    static {
+        // add metric name mapping here
+        METRICS_NAME_MAPPING.put("__sendqueue", "send-queue");
+        METRICS_NAME_MAPPING.put("__receive", "recv-queue");
+        METRICS_NAME_MAPPING.put("complete-latency", "complete-latency");
+    }
+
     private ObjectMapper objectMapper = new ObjectMapper();
+    private Map<String, String> metrics = new HashMap<>();
 
     @Override
     public void prepare(Map stormConf, Object argument, TopologyContext context, IErrorReporter reporter) {
         super.prepare(stormConf, argument, context, reporter);
         StormTopology topology = context.getRawTopology();
-        // get all spouts
-        spouts.addAll(topology.get_spouts().keySet());
-        // add bolt execute metrics
-        topology.get_bolts().keySet().forEach(name -> addMetricName(name + "-exe"));
-        QUEUE_METRIC_NAME.forEach(name -> addMetricName(name));
-        addMetricName("complete-latency");
+        metrics.putAll(METRICS_NAME_MAPPING);
+        // add bolt execute metrics dynamically
+        metrics.putAll(topology.get_bolts().keySet().stream().collect(
+                Collectors.toMap(bolt -> bolt, bolt -> bolt + "-exe")));
+        // register all needed metric
+        metrics.keySet().forEach(name -> addMetricName(name));
     }
 
     private String object2Json(Object o) {
@@ -40,31 +48,12 @@ public class WinAggMeasurementCollector extends RedisMetricsCollector {
     }
 
     private void addQueueMetric(DataPoint dataPoint, Map<String, Object> ret) {
-        if (!((Map) dataPoint.value).isEmpty()) {
-            ret.put(dataPoint.name.substring(2), dataPoint.value);
-        }
+        ret.put(dataPoint.name.substring(2), dataPoint.value);
     }
 
     @Override
     protected List<QueueElement> dataPoints2QueueElement(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
-        Map<String, Object> ret = new HashMap<>();
-        if (spouts.contains(taskInfo.srcComponentId)) {
-            dataPoints.stream().forEach((dataPoint) -> {
-                if (dataPoint.name.equals("complete-latency")) {
-                    ret.put("complete-latency", dataPoint.value);
-                } else if (QUEUE_METRIC_NAME.contains(dataPoint.name)) {
-                    addQueueMetric(dataPoint, ret);
-                }
-            });
-        } else {
-            dataPoints.stream().forEach((dataPoint) -> {
-                if (dataPoint.name.equals(taskInfo.srcComponentId + "-exe")) {
-                    ret.put("execute", dataPoint.value);
-                } else if (QUEUE_METRIC_NAME.contains(dataPoint.name)) {
-                    addQueueMetric(dataPoint, ret);
-                }
-            });
-        }
+        Map<String, Object> ret = dataPoints.stream().collect(Collectors.toMap(p -> metrics.get(p.name), p -> p.value));
         String data = taskInfo.srcComponentId + ':' + taskInfo.srcTaskId + "->" + object2Json(ret);
         return Arrays.asList(createDefaultQueueElement(data));
     }

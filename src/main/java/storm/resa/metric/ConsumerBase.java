@@ -38,12 +38,12 @@ public abstract class ConsumerBase implements IMetricsConsumer {
     @Override
     public void handleDataPoints(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
         //ignore system component
-        if (Utils.isSystemId(taskInfo.srcComponentId)) {
+        if (keepTask(taskInfo)) {
             return;
         }
         ArrayList<DataPoint> selectedPoints = new ArrayList<DataPoint>(dataPoints.size());
         for (DataPoint dataPoint : dataPoints) {
-            if (metricNames.contains(dataPoint.name) && !filter(dataPoint)) {
+            if (metricNames.contains(dataPoint.name) && keepPoint(taskInfo, dataPoint)) {
                 selectedPoints.add(dataPoint);
             }
         }
@@ -52,25 +52,28 @@ public abstract class ConsumerBase implements IMetricsConsumer {
         }
     }
 
+    protected boolean keepTask(TaskInfo taskInfo) {
+        //ignore system component
+        return Utils.isSystemId(taskInfo.srcComponentId);
+    }
+
     /**
      * Check whether this data point should be filtered
      *
      * @param dataPoint
-     * @return true if this data point should be removed
+     * @return false if this data point should be removed
      */
-    protected boolean filter(DataPoint dataPoint) {
+    protected boolean keepPoint(TaskInfo taskInfo, DataPoint dataPoint) {
         Object value = dataPoint.value;
         if (value == null) {
-            return true;
+            return false;
         } else if (value instanceof Map) {
-            return ((Map) value).isEmpty();
+            return !((Map) value).isEmpty();
         } else if (value instanceof Collection) {
-            return ((Collection) value).isEmpty();
+            return !((Collection) value).isEmpty();
         }
-        return false;
+        return true;
     }
 
-    protected void handleSelectedDataPoints(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
-
-    }
+    protected abstract void handleSelectedDataPoints(TaskInfo taskInfo, Collection<DataPoint> dataPoints);
 }
