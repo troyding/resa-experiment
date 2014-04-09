@@ -56,6 +56,6 @@ public class JedisResource implements Iterable<Object> {
         ///MetricAnalyzer analyzer = new MetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
         ///analyzer.calcAvg();
         AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
-        aggAnalyzer.calStat();
+        aggAnalyzer.calCMVStat();
     }
 }
