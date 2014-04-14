@@ -45,14 +45,14 @@ public class DataSender {
 
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
-            System.out.println("usage: DataSender <confFile> <inputFile> [-avg <rate>] [-poison <lambda>]");
+            System.out.println("usage: DataSender <confFile> <inputFile> [-deter <rate>] [-poison <lambda>] [-uniform <left> <right>]");
             return;
         }
         DataSender sender = new DataSender(ConfigUtil.readConfig(new File(args[0])));
         System.out.println("start sender");
         Path dataFile = Paths.get(args[1]);
         switch (args[2].substring(1)) {
-            case "avg":
+            case "deter":
                 long sleep = (long) (1000 / Float.parseFloat(args[3]));
                 sender.send2Queue(dataFile, () -> sleep);
                 break;
@@ -60,8 +60,17 @@ public class DataSender {
                 double lambda = Float.parseFloat(args[3]);
                 sender.send2Queue(dataFile, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
                 break;
+            case "uniform":
+                if (args.length < 5) {
+                    System.out.println("usage: DataSender <confFile> <inputFile> [-deter <rate>] [-poison <lambda>] [-uniform <left> <right>]");
+                    return;
+                }
+                double left = Float.parseFloat(args[3]);
+                double right = Float.parseFloat(args[4]);
+                sender.send2Queue(dataFile, () -> (long)(1000 / (Math.random() * (right - left) + left)));
             default:
-                sender.send2Queue(dataFile, () -> 0);
+                System.out.println("usage: DataSender <confFile> <inputFile> [-deter <rate>] [-poison <lambda>] [-uniform <left> <right>]");
+                ///sender.send2Queue(dataFile, () -> 0);
                 break;
         }
         System.out.println("end sender");
