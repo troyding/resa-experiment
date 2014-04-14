@@ -1,6 +1,5 @@
 package storm.resa.analyzer;
 
-import clojure.main;
 import redis.clients.jedis.Jedis;
 
 import java.util.Iterator;
@@ -52,10 +51,4 @@ public class JedisResource implements Iterable<Object> {
         return new DataIter();
     }
 
-    public static void main(String[] args) {
-        ///MetricAnalyzer analyzer = new MetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
-        ///analyzer.calcAvg();
-        AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
-        aggAnalyzer.calCMVStat();
-    }
 }
