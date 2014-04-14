@@ -35,7 +35,7 @@ public class WinAggregateSpout implements IRichSpout {
         @Override
         public void spoutAck(SpoutAckInfo info) {
             StreamMsgId streamMsgId = (StreamMsgId) info.messageId;
-            if (streamMsgId != null) {
+            if (streamMsgId != null && info.completeLatencyMs != null) {
                 metric.addMetric(streamMsgId.stream, info.completeLatencyMs);
             }
         }
