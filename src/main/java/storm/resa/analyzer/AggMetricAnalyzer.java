@@ -3,6 +3,7 @@ package storm.resa.analyzer;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,63 +28,48 @@ public class AggMetricAnalyzer {
         private double total_2 = 0;
         private int emptyEntryCnt = 0;
 
-        void emptyEntryInr() {
-            emptyEntryCnt++;
-        }
-
-        int getEmptyEntryCnt() {
-            return emptyEntryCnt;
-        }
+        void emptyEntryInr (){ emptyEntryCnt++; }
+        int getEmptyEntryCnt() { return emptyEntryCnt; }
 
         ///Add one measured valued
         void addOneNumber(double num) {
             count++;
-            total += num;
+            total +=  num;
             total_2 += (num * num);
         }
 
         ///Add aggregated measure values in one window
-        void addAggWin(int aggCount, double aggVal, double aggVal_2) {
+        void addAggWin(int aggCount, double aggVal, double aggVal_2){
             count += aggCount;
             total += aggVal;
             total_2 += aggVal_2;
         }
 
-        long getCount() {
+        long getCount(){
             return count;
         }
-
         double getTotal() {
-            return total;
+        	return total;
         }
-
-        double getAvg() {
-            return count == 0 ? 0.0 : total / (double) count;
+        double getAvg() { return count == 0 ? 0.0 : total / (double)count; }
+        double getAvg2() { return count == 0 ? 0.0 : total_2 / (double)count; }
+        double getVar(){
+        	return getAvg2() - getAvg()*getAvg();
         }
-
-        double getAvg2() {
-            return count == 0 ? 0.0 : total_2 / (double) count;
-        }
-
-        double getVar() {
-            return getAvg2() - getAvg() * getAvg();
-        }
-
         ///Square coefficient of variation (Scv), scv(X) = Var(X) / [E(X)*E(X)];
-        double getScv() {
-            return count == 0 ? 0.0 : (getAvg2() / (getAvg() * getAvg()) - 1.0);
-        }
+        double getScv() {return count == 0 ? 0.0 : (getAvg2() / (getAvg()*getAvg()) - 1.0); }
 
-        String toCMVString() {
-            return "Count: " + getCount()
-                    + String.format(", avg: %.5f", getAvg())
-                    + String.format(", var: %.5f", getVar())
-                    + String.format(", scv: %.5f", getScv())
+        String toCMVString(){
+            return  "Count: " + getCount()
+                    + String.format( ", sum: %.2f", getTotal())
+                    + String.format( ", avg: %.5f", getAvg())
+                    + String.format( ", var: %.5f", getVar())
+                    + String.format( ", scv: %.5f", getScv())
                     + ", empEn: " + getEmptyEntryCnt();
         }
     }
 
-    private static class ComponentAggResult {
+    private static class ComponentAggResult{
         CntMeanVar recvArrivalCnt = null;
         CntMeanVar recvQueueLen = null;
         CntMeanVar recvQueueSampleCnt = null;
@@ -93,13 +79,10 @@ public class AggMetricAnalyzer {
         CntMeanVar sendQueueSampleCnt = null;
 
         Map<String, CntMeanVar> tupleProcess = null;
-
-        enum ComponentType {bolt, spout}
-
-        ;
+        enum ComponentType {bolt, spout};
         ComponentType type = null;
 
-        ComponentAggResult(ComponentType t) {
+        ComponentAggResult(ComponentType t){
             this.type = t;
             recvArrivalCnt = new CntMeanVar();
             recvQueueLen = new CntMeanVar();
@@ -112,12 +95,12 @@ public class AggMetricAnalyzer {
             tupleProcess = new HashMap<>();
         }
 
-        String getComponentType() {
-            return type == ComponentType.bolt ? "bolt" : "spout";
+        String getComponentType(){
+            return type == ComponentType.bolt ? "bolt":"spout";
         }
 
-        String getProcessString() {
-            return type == ComponentType.bolt ? "exec-delay" : "complete-latency";
+        String getProcessString(){
+            return type == ComponentType.bolt ? "exec-delay":"complete-latency";
         }
 
     }
@@ -158,7 +141,7 @@ public class AggMetricAnalyzer {
                         car = new ComponentAggResult(ComponentAggResult.ComponentType.spout);
                         spoutResult.put(cid, car);
                     }
-                } else if (componentData.containsKey(TupleExecString)) {
+                }else if (componentData.containsKey(TupleExecString)){
                     car = boltResult.get(cid);
                     if (car == null) {
                         car = new ComponentAggResult(ComponentAggResult.ComponentType.bolt);
@@ -256,13 +239,14 @@ public class AggMetricAnalyzer {
         printCMVStat(boltResult);
     }
 
-    private static void printCMVStat(Map<String, ComponentAggResult> result) {
-        if (result == null) {
+    private static void printCMVStat(Map<String, ComponentAggResult> result)
+    {
+        if (result == null){
             System.out.println("input AggResult is null.");
             return;
         }
 
-        for (Map.Entry<String, ComponentAggResult> e : result.entrySet()) {
+        for (Map.Entry<String, ComponentAggResult> e: result.entrySet()){
             String cid = e.getKey();
             String componentName = cid.split(":")[0];
             String taskID = cid.split(":")[1];
@@ -283,7 +267,7 @@ public class AggMetricAnalyzer {
             ///System.out.println("---------------------------------------------------------------------------");
             if (tupleProcessCnt > 0) {
                 for (Map.Entry<String, CntMeanVar> innerE : car.tupleProcess.entrySet()) {
-                    System.out.println(car.getProcessString() + "->" + innerE.getKey() + ":" + innerE.getValue().toCMVString());
+                    System.out.println(car.getProcessString() + "->" + innerE.getKey()+ ":" + innerE.getValue().toCMVString());
                 }
             }
             System.out.println("-------------------------------------------------------------------------------");
