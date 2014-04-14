@@ -61,6 +61,7 @@ public class AggMetricAnalyzer {
 
         String toCMVString(){
             return  "Count: " + getCount()
+                    + String.format( ", sum: %.2f", getTotal())
                     + String.format( ", avg: %.5f", getAvg())
                     + String.format( ", var: %.5f", getVar())
                     + String.format( ", scv: %.5f", getScv())
