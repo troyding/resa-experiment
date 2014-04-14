@@ -234,7 +234,18 @@ public class AggMetricAnalyzer {
         }
         ///System.out.println("complete latency avg:" + (totalCompleteLatency / count));
 
-        for (Map.Entry<String, ComponentAggResult> e: spoutResult.entrySet()){
+        printCMVStat(spoutResult);
+        printCMVStat(boltResult);
+    }
+
+    private static void printCMVStat(Map<String, ComponentAggResult> result)
+    {
+        if (result == null){
+            System.out.println("input AggResult is null.");
+            return;
+        }
+
+        for (Map.Entry<String, ComponentAggResult> e: result.entrySet()){
             String cid = e.getKey();
             String componentName = cid.split(":")[0];
             String taskID = cid.split(":")[1];
@@ -261,30 +272,5 @@ public class AggMetricAnalyzer {
             System.out.println("-------------------------------------------------------------------------------");
         }
 
-        for (Map.Entry<String, ComponentAggResult> e: boltResult.entrySet()){
-            String cid = e.getKey();
-            String componentName = cid.split(":")[0];
-            String taskID = cid.split(":")[1];
-            ComponentAggResult car = e.getValue();
-            int tupleProcessCnt = car.tupleProcess.size();
-
-            System.out.println("-------------------------------------------------------------------------------");
-            System.out.println("ComponentName: " + componentName + ", taskID: " + taskID + ", type: " + car.getComponentType() + ", tupleProcessCnt: " + tupleProcessCnt);
-            ///System.out.println("----------------------------- SEND QUEUE Detail ----------------------------------------------");
-            System.out.println("SendQueue->SampleCnt: " + car.sendQueueSampleCnt.toCMVString());
-            System.out.println("SendQueue->QueueLen: " + car.sendQueueLen.toCMVString());
-            System.out.println("SendQueue->Arrival: " + car.sendArrivalCnt.toCMVString());
-            ///System.out.println("----------------------------- RECEIVE QUEUE Detail ----------------------------------------------");
-            System.out.println("RecvQueue->SampleCnt: " + car.recvQueueSampleCnt.toCMVString());
-            System.out.println("RecvQueue->QueueLen: " + car.recvQueueLen.toCMVString());
-            System.out.println("RecvQueue->Arrival: " + car.recvArrivalCnt.toCMVString());
-            ///System.out.println("----------------------------- Tuple Process Detail ----------------------------------------------");
-            if (tupleProcessCnt > 0) {
-                for (Map.Entry<String, CntMeanVar> innerE : car.tupleProcess.entrySet()) {
-                    System.out.println(car.getProcessString() + "->" + innerE.getKey()+ ":" + innerE.getValue().toCMVString());
-                }
-            }
-            System.out.println("-------------------------------------------------------------------------------");
-        }
     }
 }
