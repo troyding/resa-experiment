@@ -1,4 +1,4 @@
-package storm.resa.simulate;
+package storm.resa.simulate.tawc;
 
 import backtype.storm.Config;
 import backtype.storm.StormSubmitter;
@@ -44,14 +44,16 @@ public class TAExpServWC {
         int port = ConfigUtil.getInt(conf, "redis.port", 6379);
         String queue = (String) conf.get("a1-redis.queue");
 
-        IRichSpout spout = new WinAggregateSpout(new SentenceSpout(host, port, queue));
+        IRichSpout spout = new WinAggregateSpout(new TASentenceSpout(host, port, queue));
         builder.setSpout("sentenceSpout", spout, ConfigUtil.getInt(conf, "a1-spout.parallelism", 1));
 
-        IRichBolt splitBolt = new WinAggregateBolt(new SplitSentence(ConfigUtil.getDouble(conf, "a1-split.mu", 1.0)));
+        double split_mu = ConfigUtil.getDouble(conf, "a1-split.mu", 1.0);
+        IRichBolt splitBolt = new WinAggregateBolt(new TASplitSentence(() -> (long) (-Math.log(Math.random()) * 1000 / split_mu)));
         builder.setBolt("split", splitBolt,
                 ConfigUtil.getInt(conf,  "a1-split.parallelism", 1)).shuffleGrouping("sentenceSpout");
 
-        IRichBolt wcBolt = new WinAggregateBolt(new WordCounter(ConfigUtil.getDouble(conf, "a1-counter.mu", 1.0)));
+        double counter_mu = ConfigUtil.getDouble(conf, "a1-counter.mu", 1.0);
+        IRichBolt wcBolt = new WinAggregateBolt(new TAWordCounter(() -> (long) (-Math.log(Math.random()) * 1000 / counter_mu)));
         builder.setBolt("counter", wcBolt,
                 ConfigUtil.getInt(conf,  "a1-counter.parallelism", 1)).shuffleGrouping("split");
 
