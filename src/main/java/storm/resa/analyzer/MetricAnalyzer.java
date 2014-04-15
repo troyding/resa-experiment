@@ -87,8 +87,8 @@ public class MetricAnalyzer {
                 }
                 for (String element : (List<String>) e.getValue()) {
                     long arrival = Long.valueOf(element.split(",")[1]);
-                    long depature = Long.valueOf(element.split(",")[2]);
-                    double dur = (double)(depature - arrival);
+                    long departure = Long.valueOf(element.split(",")[2]);
+                    double dur = (double)(departure - arrival);
                     avgCalc.addNumber(dur);
                 }
             }

@@ -95,9 +95,8 @@ public class AggMetricAnalyzer {
 
         Map<String, CntMeanVar> tupleProcess = null;
 
-        enum ComponentType {bolt, spout}
+        enum ComponentType {bolt, spout};
 
-        ;
         ComponentType type = null;
 
         ComponentAggResult(ComponentType t) {
