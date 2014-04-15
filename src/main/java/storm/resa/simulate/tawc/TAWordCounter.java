@@ -4,16 +4,13 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-import storm.resa.simulate.SimulateBolt;
-
-import java.util.function.LongSupplier;
 
 /**
  * Created by ding on 14-1-27.
  */
 public class TAWordCounter extends TASleepBolt {
 
-    public TAWordCounter(LongSupplier sleep) {
+    public TAWordCounter(IntervalSupplier sleep) {
         super(sleep);
     }
 

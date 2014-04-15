@@ -4,10 +4,8 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-import storm.resa.simulate.SimulateBolt;
 
 import java.util.StringTokenizer;
-import java.util.function.LongSupplier;
 
 /**
  * Created by ding on 14-1-27.
@@ -15,7 +13,7 @@ import java.util.function.LongSupplier;
 public class TASplitSentence extends TASleepBolt {
     private static final long serialVersionUID = 9182719848878455933L;
 
-    public TASplitSentence(LongSupplier sleep) {
+    public TASplitSentence(IntervalSupplier sleep) {
         super(sleep);
     }
 

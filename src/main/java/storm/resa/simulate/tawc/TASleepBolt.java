@@ -5,11 +5,8 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
-import storm.resa.simulate.ExecuteMetric;
 
 import java.util.Map;
-import java.util.Random;
-import java.util.function.LongSupplier;
 
 /**
  * Created by ding on 14-1-27.
@@ -17,9 +14,9 @@ import java.util.function.LongSupplier;
 public abstract class TASleepBolt extends BaseRichBolt {
 
     protected transient OutputCollector collector;
-    private LongSupplier sleep;
+    private IntervalSupplier sleep;
 
-    public TASleepBolt(LongSupplier sleep) {
+    public TASleepBolt(IntervalSupplier sleep) {
         this.sleep = sleep;
     }
 
@@ -30,7 +27,7 @@ public abstract class TASleepBolt extends BaseRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        long inter = this.sleep.getAsLong();
+        long inter = this.sleep.get();
         if (inter > 0) {
             Utils.sleep(inter);
         }
