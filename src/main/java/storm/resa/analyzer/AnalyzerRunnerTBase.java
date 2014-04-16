@@ -1,6 +1,6 @@
 package storm.resa.analyzer;
 
-import backtype.storm.utils.Utils;
+import storm.resa.util.TimeBoundedIterable;
 
 /**
  * Created by ding on 14-4-14.
@@ -8,10 +8,12 @@ import backtype.storm.utils.Utils;
 public class AnalyzerRunnerTBase {
 
     public static void main(String[] args) {
+        Iterable<Object> dataStream = new JedisResource(args[0], Integer.valueOf(args[1]), args[2]);
         int timeIntervalSec = Integer.valueOf(args[3]);
+        long duration = timeIntervalSec * 1000;
         while (true) {
-            // run analyze for each batch
-            AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
+            // run analyze for each time batch
+            AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new TimeBoundedIterable<>(duration, dataStream));
             aggAnalyzer.calCMVStat();
 
             if (!aggAnalyzer.getSpoutResult().isEmpty() || !aggAnalyzer.getBoltResult().isEmpty()) {
@@ -19,9 +21,6 @@ public class AnalyzerRunnerTBase {
                 AggMetricAnalyzer.printCMVStat(aggAnalyzer.getSpoutResult());
                 AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getBoltResult());
             }
-
-            long interval = timeIntervalSec * 1000;
-            Utils.sleep(interval);
         }
     }
 }
