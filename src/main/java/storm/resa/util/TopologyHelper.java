@@ -9,6 +9,7 @@ import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -65,20 +66,11 @@ public class TopologyHelper {
      * @return
      */
     public static Map<String, List<Integer>> componentToTasks(TopologyDetails topoDetails, boolean ignoreSystemComp) {
-        Stream<Map.Entry<ExecutorDetails, String>> stream = topoDetails.getExecutorToComponent().entrySet().stream();
+        Predicate<Map.Entry<ExecutorDetails, String>> p = null;
         if (ignoreSystemComp) {
-            stream = stream.filter(e -> !Utils.isSystemId(e.getValue()));
+            p = e -> !Utils.isSystemId(e.getValue());
         }
-        return stream.collect(
-                Collectors.groupingBy(entry -> entry.getValue(),
-                        Collector.of((Supplier<List<Integer>>) ArrayList::new, (list, entry) -> {
-                            list.addAll(getTaskIds(entry.getKey()));
-                        }, (list1, list2) -> {
-                            list1.addAll(list2);
-                            return list1;
-                        })
-                )
-        );
+        return componentToTasks(topoDetails, p);
     }
 
     /**
@@ -88,19 +80,9 @@ public class TopologyHelper {
      * @return
      */
     public static Map<String, List<Integer>> boltComponentToTasks(TopologyDetails topoDetails) {
-        Stream<Map.Entry<ExecutorDetails, String>> stream = topoDetails.getExecutorToComponent().entrySet().stream();
-        stream = stream.filter(e -> topoDetails.getTopology().get_bolts().containsKey(e.getValue()));
-
-        return stream.collect(
-                Collectors.groupingBy(entry -> entry.getValue(),
-                        Collector.of((Supplier<List<Integer>>) ArrayList::new, (list, entry) -> {
-                            list.addAll(getTaskIds(entry.getKey()));
-                        }, (list1, list2) -> {
-                            list1.addAll(list2);
-                            return list1;
-                        })
-                )
-        );
+        Set<String> bolts = topoDetails.getTopology().get_bolts().keySet();
+        Predicate<Map.Entry<ExecutorDetails, String>> p = e -> bolts.contains(e.getValue());
+        return componentToTasks(topoDetails, p);
     }
 
     /**
@@ -110,9 +92,23 @@ public class TopologyHelper {
      * @return
      */
     public static Map<String, List<Integer>> spoutComponentToTasks(TopologyDetails topoDetails) {
-        Stream<Map.Entry<ExecutorDetails, String>> stream = topoDetails.getExecutorToComponent().entrySet().stream();
-        stream = stream.filter(e -> topoDetails.getTopology().get_spouts().containsKey(e.getValue()));
+        Set<String> spouts = topoDetails.getTopology().get_spouts().keySet();
+        Predicate<Map.Entry<ExecutorDetails, String>> p = e -> spouts.contains(e.getValue());
+        return componentToTasks(topoDetails, p);
+    }
 
+    /**
+     * Get component tasks from TopologyDetails object
+     *
+     * @param topoDetails
+     * @return
+     */
+    private static Map<String, List<Integer>> componentToTasks(TopologyDetails topoDetails,
+                                                               Predicate<Map.Entry<ExecutorDetails, String>> p) {
+        Stream<Map.Entry<ExecutorDetails, String>> stream = topoDetails.getExecutorToComponent().entrySet().stream();
+        if (p != null) {
+            stream = stream.filter(p);
+        }
         return stream.collect(
                 Collectors.groupingBy(entry -> entry.getValue(),
                         Collector.of((Supplier<List<Integer>>) ArrayList::new, (list, entry) -> {
@@ -132,7 +128,7 @@ public class TopologyHelper {
      * @return
      */
     public static Map<String, List<Integer>> componentToTasks(TopologyDetails topoDetails) {
-        return componentToTasks(topoDetails, false);
+        return componentToTasks(topoDetails, null);
     }
 
     private static ExecutorDetails toExecutorDetails(ExecutorInfo executorInfo) {
