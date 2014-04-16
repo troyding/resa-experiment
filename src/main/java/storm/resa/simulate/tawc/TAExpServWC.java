@@ -48,12 +48,12 @@ public class TAExpServWC {
         builder.setSpout("sentenceSpout", spout, ConfigUtil.getInt(conf, "a1-spout.parallelism", 1));
 
         double split_mu = ConfigUtil.getDouble(conf, "a1-split.mu", 1.0);
-        IRichBolt splitBolt = new WinAggregateBolt(new TASplitSentence(() -> (long) (-Math.log(Math.random()) * 1000 / split_mu)));
+        IRichBolt splitBolt = new WinAggregateBolt(new TASplitSentence(() -> (long) (-Math.log(Math.random()) * 1000.0 / split_mu)));
         builder.setBolt("split", splitBolt,
                 ConfigUtil.getInt(conf,  "a1-split.parallelism", 1)).shuffleGrouping("sentenceSpout");
 
         double counter_mu = ConfigUtil.getDouble(conf, "a1-counter.mu", 1.0);
-        IRichBolt wcBolt = new WinAggregateBolt(new TAWordCounter(() -> (long) (-Math.log(Math.random()) * 1000 / counter_mu)));
+        IRichBolt wcBolt = new WinAggregateBolt(new TAWordCounter(() -> (long) (-Math.log(Math.random()) * 1000.0 / counter_mu)));
         builder.setBolt("counter", wcBolt,
                 ConfigUtil.getInt(conf,  "a1-counter.parallelism", 1)).shuffleGrouping("split");
 

@@ -7,6 +7,9 @@ import java.util.Map;
 
 /**
  * Created by ding on 14-3-4.
+ * Note:
+ * Recv-Queue arrival count includes ack for each message
+ * When calculate sum and average, need to adjust (sum - #message, average - 1) for accurate value.
  */
 public class AggMetricAnalyzer {
 
@@ -20,6 +23,9 @@ public class AggMetricAnalyzer {
     static String TupleExecString = "execute";
     static String TupleSendQueueString = "send-queue";
     static String TupleRecvQueueString = "recv-queue";
+
+    private Map<String, ComponentAggResult> spoutResult = new HashMap<String, ComponentAggResult>();
+    private Map<String, ComponentAggResult> boltResult = new HashMap<String, ComponentAggResult>();
 
     private static class CntMeanVar {
         private long count = 0;
@@ -82,6 +88,12 @@ public class AggMetricAnalyzer {
                     + String.format(", scv: %.5f", getScv())
                     + ", empEn: " + getEmptyEntryCnt();
         }
+
+        String toCMVStringShort() {
+            return "Count: " + getCount()
+                    + String.format(", avg: %.2f", getAvg())
+                    + String.format(", scv: %.2f", getScv());
+        }
     }
 
     private static class ComponentAggResult {
@@ -123,10 +135,6 @@ public class AggMetricAnalyzer {
     }
 
     public void calCMVStat() {
-        Map<String, CntMeanVar> compAvg = new HashMap<String, CntMeanVar>();
-
-        Map<String, ComponentAggResult> spoutResult = new HashMap<String, ComponentAggResult>();
-        Map<String, ComponentAggResult> boltResult = new HashMap<String, ComponentAggResult>();
 
         for (Object metricStr : dataStream) {
             ///Real example
@@ -252,11 +260,19 @@ public class AggMetricAnalyzer {
         }
         ///System.out.println("complete latency avg:" + (totalCompleteLatency / count));
 
-        printCMVStat(spoutResult);
-        printCMVStat(boltResult);
+        ///printCMVStat(spoutResult);
+        ///printCMVStat(boltResult);
     }
 
-    private static void printCMVStat(Map<String, ComponentAggResult> result) {
+    public Map<String, ComponentAggResult> getSpoutResult () {
+        return spoutResult;
+    }
+
+    public Map<String, ComponentAggResult> getBoltResult () {
+        return boltResult;
+    }
+
+    public static void printCMVStat(Map<String, ComponentAggResult> result) {
         if (result == null) {
             System.out.println("input AggResult is null.");
             return;
@@ -289,5 +305,31 @@ public class AggMetricAnalyzer {
             System.out.println("-------------------------------------------------------------------------------");
         }
 
+    }
+
+    public static void printCMVStatShort(Map<String, ComponentAggResult> result) {
+        if (result == null) {
+            System.out.println("input AggResult is null.");
+            return;
+        }
+
+        for (Map.Entry<String, ComponentAggResult> e : result.entrySet()) {
+            String cid = e.getKey();
+            String componentName = cid.split(":")[0];
+            String taskID = cid.split(":")[1];
+
+            ComponentAggResult car = e.getValue();
+            int tupleProcessCnt = car.tupleProcess.size();
+
+            System.out.print(componentName + ":" + taskID + ":" + car.getComponentType());
+            System.out.print(",RecvQLen:" + car.recvQueueLen.toCMVStringShort());
+            System.out.println(",Arrival:" + car.recvArrivalCnt.toCMVStringShort());
+            if (tupleProcessCnt > 0) {
+                for (Map.Entry<String, CntMeanVar> innerE : car.tupleProcess.entrySet()) {
+                    System.out.println(car.getProcessString() + "->" + innerE.getKey() + ":" + innerE.getValue().toCMVString());
+                }
+            }
+            System.out.println("-------------------------------------------------------------------------------");
+        }
     }
 }
