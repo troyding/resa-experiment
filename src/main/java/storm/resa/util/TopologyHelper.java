@@ -4,6 +4,7 @@ import backtype.storm.generated.*;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.utils.NimbusClient;
+import backtype.storm.utils.Utils;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 
@@ -12,6 +13,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Helper class to get access online topology running details.
@@ -58,11 +60,16 @@ public class TopologyHelper {
     /**
      * Get component tasks from TopologyDetails object
      *
-     * @param topologyDetails
+     * @param topoDetails
+     * @param ignoreSystemComp whether system component should be ignore
      * @return
      */
-    public static Map<String, List<Integer>> componentToTasks(TopologyDetails topologyDetails) {
-        return topologyDetails.getExecutorToComponent().entrySet().stream().collect(
+    public static Map<String, List<Integer>> componentToTasks(TopologyDetails topoDetails, boolean ignoreSystemComp) {
+        Stream<Map.Entry<ExecutorDetails, String>> stream = topoDetails.getExecutorToComponent().entrySet().stream();
+        if (ignoreSystemComp) {
+            stream = stream.filter(e -> !Utils.isSystemId(e.getValue()));
+        }
+        return stream.collect(
                 Collectors.groupingBy(entry -> entry.getValue(),
                         Collector.of((Supplier<List<Integer>>) ArrayList::new, (list, entry) -> {
                             list.addAll(getTaskIds(entry.getKey()));
@@ -72,6 +79,16 @@ public class TopologyHelper {
                         })
                 )
         );
+    }
+
+    /**
+     * Get component tasks from TopologyDetails object
+     *
+     * @param topoDetails
+     * @return
+     */
+    public static Map<String, List<Integer>> componentToTasks(TopologyDetails topoDetails) {
+        return componentToTasks(topoDetails, false);
     }
 
     private static ExecutorDetails toExecutorDetails(ExecutorInfo executorInfo) {
