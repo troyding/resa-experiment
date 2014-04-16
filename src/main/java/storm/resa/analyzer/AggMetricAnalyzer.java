@@ -90,9 +90,9 @@ public class AggMetricAnalyzer {
         }
 
         String toCMVStringShort() {
-            return "Count: " + getCount()
-                    + String.format(", avg: %.2f", getAvg())
-                    + String.format(", scv: %.2f", getScv());
+            return "cnt:" + getCount()
+                    + String.format(",avg:%.2f", getAvg())
+                    + String.format(",scv:%.2f", getScv());
         }
     }
 
@@ -322,8 +322,10 @@ public class AggMetricAnalyzer {
             int tupleProcessCnt = car.tupleProcess.size();
 
             System.out.print(componentName + ":" + taskID + ":" + car.getComponentType());
-            System.out.print(",RecvQLen:" + car.recvQueueLen.toCMVStringShort());
-            System.out.println(",Arrival:" + car.recvArrivalCnt.toCMVStringShort());
+            System.out.print(",RQ:" + car.recvQueueLen.toCMVStringShort());
+            System.out.print(",Arrl:" + car.recvArrivalCnt.toCMVStringShort());
+            System.out.println(",SQ:" + car.sendQueueLen.toCMVStringShort());
+
             if (tupleProcessCnt > 0) {
                 for (Map.Entry<String, CntMeanVar> innerE : car.tupleProcess.entrySet()) {
                     System.out.println(car.getProcessString() + "->" + innerE.getKey() + ":" + innerE.getValue().toCMVString());
