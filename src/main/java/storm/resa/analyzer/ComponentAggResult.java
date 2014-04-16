@@ -17,6 +17,8 @@ public class ComponentAggResult {
 
     Map<String, CntMeanVar> tupleProcess = null;
 
+    CntMeanVar totalProcessedTuple = null;
+
     enum ComponentType {bolt, spout};
 
     ComponentType type = null;
@@ -31,6 +33,8 @@ public class ComponentAggResult {
         sendQueueLen = new CntMeanVar();
         sendQueueSampleCnt = new CntMeanVar();
 
+        totalProcessedTuple = new CntMeanVar();
+
         tupleProcess = new HashMap<>();
     }
 
@@ -40,5 +44,41 @@ public class ComponentAggResult {
 
     String getProcessString() {
         return type == ComponentType.bolt ? "exec-delay" : "complete-latency";
+    }
+
+    CntMeanVar updateAndGetTotalProcessedTuple() {
+        if (totalProcessedTuple == null) {
+            totalProcessedTuple = new CntMeanVar();
+        }
+        totalProcessedTuple.clear();
+        for (Map.Entry<String, CntMeanVar> e : tupleProcess.entrySet()) {
+            if (e != null) {
+                totalProcessedTuple.combine(e.getValue());
+            }
+        }
+        return totalProcessedTuple;
+    }
+
+    CntMeanVar getTotalProcessedTuple() {
+        return totalProcessedTuple;
+    }
+
+    static void combine(ComponentAggResult from, ComponentAggResult to) throws Exception {
+
+        if (from != null && to != null) {
+            if (from.type != to.type) {
+                throw new Exception("Type is not the same");
+            }
+
+            to.recvArrivalCnt.combine(from.recvArrivalCnt);
+            to.recvQueueLen.combine(from.recvQueueLen);
+            to.recvQueueSampleCnt.combine(from.recvQueueSampleCnt);
+            to.sendArrivalCnt.combine(from.sendArrivalCnt);
+            to.sendQueueLen.combine(from.sendQueueLen);
+            to.sendQueueSampleCnt.combine(from.sendQueueSampleCnt);
+
+            ///Caution, this to.totalProcessedTuple is used for combined usage!
+            to.totalProcessedTuple.combine(from.updateAndGetTotalProcessedTuple());
+        }
     }
 }

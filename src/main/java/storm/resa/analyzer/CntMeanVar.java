@@ -31,6 +31,21 @@ public class CntMeanVar {
         total_2 += aggVal_2;
     }
 
+    void combine(CntMeanVar cmr) {
+        if (cmr != null) {
+            count += cmr.count;
+            total += cmr.total;
+            total_2 += cmr.total_2;
+        }
+    }
+
+    void clear() {
+        count = 0;
+        total = 0;
+        total_2 = 0;
+        emptyEntryCnt = 0;
+    }
+
     long getCount() {
         return count;
     }
