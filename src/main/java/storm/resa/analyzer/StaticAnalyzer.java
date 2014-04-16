@@ -1,6 +1,7 @@
 package storm.resa.analyzer;
 
 import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.utils.Utils;
 import storm.resa.util.TopologyHelper;
 
 import java.util.List;
@@ -21,13 +22,24 @@ public class StaticAnalyzer {
         AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getBoltResult());
 
        try {
-           Map<String, Object> conf = TopologyStatAnalyzer.getDefaultConf();
+
+           ///Map<String, Object> conf = TopologyStatAnalyzer.getDefaultConf();
+           Map<String, Object> conf = Utils.readDefaultConfig();
+
            TopologyDetails td = TopologyHelper.getTopologyDetails(args[3], conf);
            TopologyStatAnalyzer.PrintTopoDetail(td);
 
-           Map<String, List<Integer>> c2t = TopologyHelper.componentToTasks(td, true);
+           Map<String, List<Integer>> bolt2t = TopologyHelper.boltComponentToTasks(td);
 
-           for (Map.Entry<String, List<Integer>> e : c2t.entrySet()) {
+           System.out.println("There are total: " + td.getTopology().get_bolts_size() + " bolts:");
+           for (Map.Entry<String, List<Integer>> e : bolt2t.entrySet()) {
+               System.out.println(e.getKey());
+               e.getValue().forEach(i -> System.out.println(i));
+           }
+
+           System.out.println("There are total: " + td.getTopology().get_spouts_size() + " spouts:");
+           Map<String, List<Integer>> spout2t = TopologyHelper.spoutComponentToTasks(td);
+           for (Map.Entry<String, List<Integer>> e : spout2t.entrySet()) {
                System.out.println(e.getKey());
                e.getValue().forEach(i -> System.out.println(i));
            }
