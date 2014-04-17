@@ -12,8 +12,9 @@ import java.util.*;
 
 /**
  * Created by ding on 14-4-14.
+ * Backup for ding
  */
-public class AnalyzerRunnerTBase {
+public class AnalyzerRunnerTBaseIterable {
 
     static Map<String, ComponentAggResult> spoutWinMor = new HashMap<String, ComponentAggResult>();
     static Map<String, ComponentAggResult> boltWinMor = new HashMap<String, ComponentAggResult>();
@@ -53,18 +54,18 @@ public class AnalyzerRunnerTBase {
         System.out.println("topology.executor.receive.buffer.size: " + recvQLen);
         System.out.println("topology.executor.send.buffer.size: " + sendQLen);
 
-        ///Iterable<Object> dataStream = new JedisResource(args[0], Integer.valueOf(args[1]), args[2]);
+        Iterable<Object> dataStream = new JedisResource(args[0], Integer.valueOf(args[1]), args[2]);
         int timeIntervalSec = Integer.valueOf(args[3]);
         long duration = timeIntervalSec * 1000;
         while (true) {
             // run analyze for each time batch
-            AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
+            AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new TimeBoundedIterable<>(duration, dataStream));
             aggAnalyzer.calCMVStat();
 
             if (!aggAnalyzer.getSpoutResult().isEmpty() || !aggAnalyzer.getBoltResult().isEmpty()) {
                 System.out.println("----------- Message reported on " + System.currentTimeMillis() + " -----------------");
 
-                AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getSpoutResult());
+                AggMetricAnalyzer.printCMVStat(aggAnalyzer.getSpoutResult());
                 AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getBoltResult());
 
                 try {
@@ -74,7 +75,6 @@ public class AnalyzerRunnerTBase {
                     e.printStackTrace();
                 }
 
-                Utils.sleep(duration);
             }
         }
     }
