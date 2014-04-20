@@ -110,13 +110,16 @@ public class TopologyHelper {
             stream = stream.filter(p);
         }
         return stream.collect(
-                Collectors.groupingBy(entry -> entry.getValue(),
-                        Collector.of((Supplier<List<Integer>>) ArrayList::new, (list, entry) -> {
-                            list.addAll(getTaskIds(entry.getKey()));
-                        }, (list1, list2) -> {
-                            list1.addAll(list2);
-                            return list1;
-                        })
+                Collectors.groupingBy(e -> e.getValue(),
+                        Collectors.mapping(e -> getTaskIds(e.getKey()),
+                                Collector.of((Supplier<List<Integer>>) ArrayList::new, (all, l) -> {
+                                            all.addAll(l);
+                                        }, (all, l) -> {
+                                            all.addAll(l);
+                                            return all;
+                                        }
+                                )
+                        )
                 )
         );
     }
@@ -128,7 +131,7 @@ public class TopologyHelper {
      * @return
      */
     public static Map<String, List<Integer>> componentToTasks(TopologyDetails topoDetails) {
-        return componentToTasks(topoDetails, null);
+        return componentToTasks(topoDetails, false);
     }
 
     private static ExecutorDetails toExecutorDetails(ExecutorInfo executorInfo) {
