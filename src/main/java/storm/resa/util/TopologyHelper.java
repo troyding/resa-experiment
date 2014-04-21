@@ -109,8 +109,7 @@ public class TopologyHelper {
         if (p != null) {
             stream = stream.filter(p);
         }
-        return stream.collect(
-                Collectors.groupingBy(e -> e.getValue(),
+        return stream.collect(Collectors.groupingBy(Map.Entry::getValue,
                         Collectors.mapping(e -> getTaskIds(e.getKey()),
                                 Collector.of((Supplier<List<Integer>>) ArrayList::new, (all, l) -> {
                                             all.addAll(l);
