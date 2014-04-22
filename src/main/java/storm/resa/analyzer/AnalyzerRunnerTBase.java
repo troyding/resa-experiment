@@ -31,6 +31,11 @@ public class AnalyzerRunnerTBase {
 
         TopologyDetails td = TopologyHelper.getTopologyDetails(args[2], conf);
 
+        if (td == null){
+            System.out.println("Topology: " + args[2] + " does not exist");
+            return;
+        }
+
         Map<String, List<Integer>> bolt2t = TopologyHelper.boltComponentToTasks(td);
 
         System.out.println("There are total: " + td.getTopology().get_bolts_size() + " bolts:");
@@ -49,7 +54,6 @@ public class AnalyzerRunnerTBase {
         int sendQLen = ConfigUtil.getInt(conf, "topology.executor.send.buffer.size", 1024);
         int recvQLen = ConfigUtil.getInt(conf, "topology.executor.receive.buffer.size", 1024);
 
-        System.out.println("topology.receiver.buffer.size: " + conf.get("topology.receiver.buffer.size"));
         System.out.println("topology.executor.receive.buffer.size: " + recvQLen);
         System.out.println("topology.executor.send.buffer.size: " + sendQLen);
 
@@ -64,8 +68,8 @@ public class AnalyzerRunnerTBase {
             if (!aggAnalyzer.getSpoutResult().isEmpty() || !aggAnalyzer.getBoltResult().isEmpty()) {
                 System.out.println("----------- Message reported on " + System.currentTimeMillis() + " -----------------");
 
-                AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getSpoutResult());
-                AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getBoltResult());
+                ///AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getSpoutResult());
+                ///AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getBoltResult());
 
                 try {
 
@@ -84,10 +88,6 @@ public class AnalyzerRunnerTBase {
             Map<String, Object> conf,
             Map<String, List<Integer>> bolt2t,
             Map<String, List<Integer>> spout2t) throws Exception {
-
-        double winAlpha = 0.0;
-        double qFullThreshold = 0.5;
-        double rhoBusyRatio = 1.1;
 
         Set<String> spoutNames = new HashSet<String>();
         for (Map.Entry<String, List<Integer>> e : spout2t.entrySet()) {
@@ -134,7 +134,7 @@ public class AnalyzerRunnerTBase {
                     car = new ComponentAggResult(ComponentAggResult.ComponentType.spout);
                     spoutCombineMor.put(componentName, car);
                 }
-                ComponentAggResult.combine(e.getValue(), car);
+                car.addCAR(e.getValue());
             }
         }
 
@@ -149,14 +149,93 @@ public class AnalyzerRunnerTBase {
                     car = new ComponentAggResult(ComponentAggResult.ComponentType.bolt);
                     boltCombineMor.put(componentName, car);
                 }
-                ComponentAggResult.combine(e.getValue(), car);
+                car.addCAR(e.getValue());
             }
         }
 
         System.out.println("spWinMorSize: " + spoutWinMor.size() + ",spComMorSize: " + spoutCombineMor.size() + ",spUpCnt: " + spoutUpCnt);
         System.out.println("boWinMorSize: " + boltWinMor.size() + ",boComMorSize: " + boltCombineMor.size() + ",boUpCnt: " + boltUpCnt );
 
-        AggMetricAnalyzer.printCombineCARStat(spoutCombineMor);
-        AggMetricAnalyzer.printCombineCARStat(boltCombineMor);
+        Map<String, Object> para = new HashMap<>();
+        int maxSendQSize = ConfigUtil.getInt(conf, "topology.executor.send.buffer.size", 1024);
+        int maxRecvQSize = ConfigUtil.getInt(conf, "topology.executor.receive.buffer.size", 1024);
+
+        para.put("QoS", 5000.0);
+        para.put("maxSendQSize", maxSendQSize);
+        para.put("maxRecvQSize", maxRecvQSize);
+        para.put("sendQSizeThresh", 5.0);
+        para.put("recvQSizeThreshRatio", 0.8);
+        para.put("messageUpdateInterval", 10.0);
+
+        for (Map.Entry<String, List<Integer>> e : bolt2t.entrySet()) {
+            para.put(e.getKey(), e.getValue().size());
+        }
+
+        for (Map.Entry<String, List<Integer>> e : spout2t.entrySet()) {
+            para.put(e.getKey(), e.getValue().size());
+        }
+
+        ConfigUtil.printConfig(para);
+
+        StatReport(spoutCombineMor, boltCombineMor, para);
+    }
+
+
+    public static void StatReport(
+            Map<String, ComponentAggResult> spoutResult,
+            Map<String, ComponentAggResult> boltResult,
+            Map<String, Object> para) {
+
+        ///Temp use, assume only one running topology!
+        double targetQoS = ConfigUtil.getDouble(para, "QoS", 5000.0);
+        int maxSendQSize = ConfigUtil.getInt(para, "maxSendQSize", 1024);
+        int maxRecvQSize = ConfigUtil.getInt(para, "maxRecvQSize", 1024);
+        double sendQSizeThresh = ConfigUtil.getDouble(para, "sendQSizeThresh", 5.0);
+        double recvQSizeThreshRatio = ConfigUtil.getDouble(para, "recvQSizeThreshRatio", 0.8);
+        double recvQSizeThresh = recvQSizeThreshRatio * maxRecvQSize;
+        double updInterval = ConfigUtil.getDouble(para, "messageUpdateInterval", 10.0);
+
+        for (Map.Entry<String, ComponentAggResult> e : spoutResult.entrySet()) {
+            String cid = e.getKey();
+            ComponentAggResult car = e.getValue();
+            int taskNum = ConfigUtil.getInt(para, cid, 0);
+
+            System.out.println("-------------------------------------------------------------------------------");
+            System.out.println("ComName: " + cid + ", type: " + car.getComponentType() + ", #task: " + taskNum);
+            System.out.println("processed: " + car.getSimpleCombinedProcessedTuple().toCMVString());
+
+            double avgComplete = car.getSimpleCombinedProcessedTuple().getAvg();
+            boolean satisfyQoS =  avgComplete < targetQoS;
+            System.out.println("TarQoS: " + targetQoS + ", AvgComplete: " + avgComplete + ", satisfy: " + satisfyQoS);
+            System.out.println("-------------------------------------------------------------------------------");
+        }
+
+        for (Map.Entry<String, ComponentAggResult> e : boltResult.entrySet()) {
+            String cid = e.getKey();
+            ComponentAggResult car = e.getValue();
+            int taskNum = ConfigUtil.getInt(para, cid, 0);
+
+            System.out.println("-------------------------------------------------------------------------------");
+            System.out.println("ComName: " + cid + ", type: " + car.getComponentType()+ ", #task: " + taskNum);
+            System.out.println("SendQLen: " + car.sendQueueLen.toCMVString());
+            System.out.println("RecvQLen: " + car.recvQueueLen.toCMVString());
+            System.out.println("Arrival: " + car.recvArrivalCnt.toCMVString());
+            System.out.println("processed: " + car.getSimpleCombinedProcessedTuple().toCMVString());
+
+            double avgSendQLen = car.sendQueueLen.getAvg();
+            double avgRecvQLen = car.recvQueueLen.getAvg();
+            double arrivalRate = car.recvArrivalCnt.getAvg() / updInterval;
+            double avgServTime = car.getSimpleCombinedProcessedTuple().getAvg();
+
+            double pho = arrivalRate * avgServTime / 1000;
+            double lambda = arrivalRate * taskNum;
+            double mu = 1000.0 / car.getSimpleCombinedProcessedTuple().getAvg();
+
+            boolean sendQLenNormal = avgSendQLen < sendQSizeThresh;
+            boolean recvQlenNormal = avgRecvQLen < recvQSizeThresh;
+
+            System.out.println(String.format("lambda: %.5f, mu: %.5f, pho: %.5f", lambda, mu, pho) + ",SQ: " + sendQLenNormal + ", RQ: " + recvQlenNormal);
+            System.out.println("-------------------------------------------------------------------------------");
+        }
     }
 }

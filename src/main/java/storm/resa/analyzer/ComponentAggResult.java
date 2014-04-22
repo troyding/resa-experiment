@@ -16,9 +16,6 @@ public class ComponentAggResult {
     CntMeanVar sendQueueSampleCnt = null;
 
     Map<String, CntMeanVar> tupleProcess = null;
-
-    CntMeanVar totalProcessedTuple = null;
-
     enum ComponentType {bolt, spout};
 
     ComponentType type = null;
@@ -33,34 +30,26 @@ public class ComponentAggResult {
         sendQueueLen = new CntMeanVar();
         sendQueueSampleCnt = new CntMeanVar();
 
-        totalProcessedTuple = new CntMeanVar();
-
         tupleProcess = new HashMap<>();
     }
 
     String getComponentType() {
         return type == ComponentType.bolt ? "bolt" : "spout";
     }
-
     String getProcessString() {
         return type == ComponentType.bolt ? "exec-delay" : "complete-latency";
     }
 
-    CntMeanVar updateAndGetTotalProcessedTuple() {
-        if (totalProcessedTuple == null) {
-            totalProcessedTuple = new CntMeanVar();
-        }
-        totalProcessedTuple.clear();
-        for (Map.Entry<String, CntMeanVar> e : tupleProcess.entrySet()) {
+    CntMeanVar getSimpleCombinedProcessedTuple() {
+
+        CntMeanVar retVal = new CntMeanVar();
+
+        for (Map.Entry<String, CntMeanVar> e : this.tupleProcess.entrySet()) {
             if (e != null) {
-                totalProcessedTuple.combine(e.getValue());
+                retVal.addCMV(e.getValue());
             }
         }
-        return totalProcessedTuple;
-    }
-
-    CntMeanVar getTotalProcessedTuple() {
-        return totalProcessedTuple;
+        return retVal;
     }
 
     static void combine(ComponentAggResult from, ComponentAggResult to) throws Exception {
@@ -70,15 +59,47 @@ public class ComponentAggResult {
                 throw new Exception("Type is not the same");
             }
 
-            to.recvArrivalCnt.combine(from.recvArrivalCnt);
-            to.recvQueueLen.combine(from.recvQueueLen);
-            to.recvQueueSampleCnt.combine(from.recvQueueSampleCnt);
-            to.sendArrivalCnt.combine(from.sendArrivalCnt);
-            to.sendQueueLen.combine(from.sendQueueLen);
-            to.sendQueueSampleCnt.combine(from.sendQueueSampleCnt);
+            to.recvArrivalCnt.addCMV(from.recvArrivalCnt);
+            to.recvQueueLen.addCMV(from.recvQueueLen);
+            to.recvQueueSampleCnt.addCMV(from.recvQueueSampleCnt);
+            to.sendArrivalCnt.addCMV(from.sendArrivalCnt);
+            to.sendQueueLen.addCMV(from.sendQueueLen);
+            to.sendQueueSampleCnt.addCMV(from.sendQueueSampleCnt);
 
-            ///Caution, this to.totalProcessedTuple is used for combined usage!
-            to.totalProcessedTuple.combine(from.updateAndGetTotalProcessedTuple());
+            if (from.tupleProcess != null) {
+                for (Map.Entry<String, CntMeanVar> e : from.tupleProcess.entrySet()) {
+                    if (to.tupleProcess.containsKey(e.getKey())) {
+                        to.tupleProcess.get(e.getKey()).addCMV(e.getValue());
+                    } else {
+                        to.tupleProcess.put(e.getKey(), e.getValue());
+                    }
+                }
+            }
+        }
+    }
+
+    void addCAR(ComponentAggResult car) throws Exception {
+        if (car != null) {
+            if (this.type != car.type) {
+                throw new Exception("Type is not the same");
+            }
+
+            this.recvArrivalCnt.addCMV(car.recvArrivalCnt);
+            this.recvQueueLen.addCMV(car.recvQueueLen);
+            this.recvQueueSampleCnt.addCMV(car.recvQueueSampleCnt);
+            this.sendArrivalCnt.addCMV(car.sendArrivalCnt);
+            this.sendQueueLen.addCMV(car.sendQueueLen);
+            this.sendQueueSampleCnt.addCMV(car.sendQueueSampleCnt);
+
+            if (car.tupleProcess != null) {
+                for (Map.Entry<String, CntMeanVar> e : car.tupleProcess.entrySet()) {
+                    if (this.tupleProcess.containsKey(e.getKey())) {
+                        this.tupleProcess.get(e.getKey()).addCMV(e.getValue());
+                    } else {
+                        this.tupleProcess.put(e.getKey(), e.getValue());
+                    }
+                }
+            }
         }
     }
 }

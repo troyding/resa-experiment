@@ -227,33 +227,4 @@ public class AggMetricAnalyzer {
             System.out.println("-------------------------------------------------------------------------------");
         }
     }
-
-    public static void printCombineCARStat(Map<String, ComponentAggResult> result) {
-        if (result == null) {
-            System.out.println("input AggResult is null.");
-            return;
-        }
-
-        for (Map.Entry<String, ComponentAggResult> e : result.entrySet()) {
-            String cid = e.getKey();
-
-            ComponentAggResult car = e.getValue();
-
-            System.out.println("-------------------------------------------------------------------------------");
-            System.out.println("ComponentName: " + cid + ", type: " + car.getComponentType());
-            ///System.out.println("---------------------------------------------------------------------------");
-            System.out.println("SendQueue->SampleCnt: " + car.sendQueueSampleCnt.toCMVString());
-            System.out.println("SendQueue->QueueLen: " + car.sendQueueLen.toCMVString());
-            System.out.println("SendQueue->Arrival: " + car.sendArrivalCnt.toCMVString());
-            ///System.out.println("---------------------------------------------------------------------------");
-            System.out.println("RecvQueue->SampleCnt: " + car.recvQueueSampleCnt.toCMVString());
-            System.out.println("RecvQueue->QueueLen: " + car.recvQueueLen.toCMVString());
-            System.out.println("RecvQueue->Arrival: " + car.recvArrivalCnt.toCMVString());
-            ///System.out.println("---------------------------------------------------------------------------");
-
-            System.out.println("processed: " + car.totalProcessedTuple.toCMVString());
-            System.out.println("-------------------------------------------------------------------------------");
-        }
-
-    }
 }
