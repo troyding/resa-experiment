@@ -73,4 +73,13 @@ public class ConfigUtil {
         return defaultValue;
     }
 
+    public static void printConfig(Map<String, Object> conf) {
+        if (conf == null) {
+            System.out.println("input configure is null");
+        } else {
+            for (Map.Entry<String, Object> e : conf.entrySet()) {
+                System.out.println(e.getKey() + " : " + e.getValue());
+            }
+        }
+    }
 }
