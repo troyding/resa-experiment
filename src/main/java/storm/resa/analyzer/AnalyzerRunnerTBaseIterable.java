@@ -156,7 +156,7 @@ public class AnalyzerRunnerTBaseIterable {
         System.out.println("spWinMorSize: " + spoutWinMor.size() + ",spComMorSize: " + spoutCombineMor.size() + ",spUpCnt: " + spoutUpCnt);
         System.out.println("boWinMorSize: " + boltWinMor.size() + ",boComMorSize: " + boltCombineMor.size() + ",boUpCnt: " + boltUpCnt );
 
-        AggMetricAnalyzer.printCombineCARStat(spoutCombineMor);
-        AggMetricAnalyzer.printCombineCARStat(boltCombineMor);
+        ///AggMetricAnalyzer.printCombineCARStat(spoutCombineMor);
+        ///AggMetricAnalyzer.printCombineCARStat(boltCombineMor);
     }
 }

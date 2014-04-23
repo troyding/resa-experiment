@@ -21,6 +21,9 @@ public class AnalyzerRunnerTBase {
     static Map<String, ComponentAggResult> spoutCombineMor = new HashMap<String, ComponentAggResult>();
     static Map<String, ComponentAggResult> boltCombineMor = new HashMap<String, ComponentAggResult>();
 
+    static Map<String, Queue<ComponentAggResult>> spoutHistory = new HashMap<>();
+    static Map<String, Queue<ComponentAggResult>> boltHistory = new HashMap<>();
+
     public static void main(String[] args) {
 
         Map<String, Object> conf = Utils.readDefaultConfig();
@@ -166,6 +169,7 @@ public class AnalyzerRunnerTBase {
         para.put("sendQSizeThresh", 5.0);
         para.put("recvQSizeThreshRatio", 0.8);
         para.put("messageUpdateInterval", 10.0);
+        para.put("historySize", 3);
 
         for (Map.Entry<String, List<Integer>> e : bolt2t.entrySet()) {
             para.put(e.getKey(), e.getValue().size());
@@ -195,17 +199,35 @@ public class AnalyzerRunnerTBase {
         double recvQSizeThresh = recvQSizeThreshRatio * maxRecvQSize;
         double updInterval = ConfigUtil.getDouble(para, "messageUpdateInterval", 10.0);
 
+        int historySize = ConfigUtil.getInt(para, "historySize", 3);
+
+
         for (Map.Entry<String, ComponentAggResult> e : spoutResult.entrySet()) {
             String cid = e.getKey();
             ComponentAggResult car = e.getValue();
             int taskNum = ConfigUtil.getInt(para, cid, 0);
 
+            Queue<ComponentAggResult> his = spoutHistory.get(cid);
+            if (his == null) {
+                his = new LinkedList<ComponentAggResult>();
+                spoutHistory.put(cid, his);
+            }
+
+            his.add(car);
+            if (his.size() > historySize) {
+                his.poll();
+            }
+
+            ComponentAggResult hisCar = ComponentAggResult.getSimpleCombinedHistory(his, car.type);
+
             System.out.println("-------------------------------------------------------------------------------");
             System.out.println("ComName: " + cid + ", type: " + car.getComponentType() + ", #task: " + taskNum);
             System.out.println("processed: " + car.getSimpleCombinedProcessedTuple().toCMVString());
+            System.out.println("his_processed: " + hisCar.getSimpleCombinedProcessedTuple().toCMVString());
 
             double avgComplete = car.getSimpleCombinedProcessedTuple().getAvg();
             boolean satisfyQoS =  avgComplete < targetQoS;
+
             System.out.println("TarQoS: " + targetQoS + ", AvgComplete: " + avgComplete + ", satisfy: " + satisfyQoS);
             System.out.println("-------------------------------------------------------------------------------");
         }
@@ -215,12 +237,29 @@ public class AnalyzerRunnerTBase {
             ComponentAggResult car = e.getValue();
             int taskNum = ConfigUtil.getInt(para, cid, 0);
 
-            System.out.println("-------------------------------------------------------------------------------");
+            Queue<ComponentAggResult> his = boltHistory.get(cid);
+            if (his == null) {
+                his = new LinkedList<ComponentAggResult>();
+                boltHistory.put(cid, his);
+            }
+
+            his.add(car);
+            if (his.size() > historySize) {
+                his.poll();
+            }
+
+            ComponentAggResult hisCar = ComponentAggResult.getSimpleCombinedHistory(his, car.type);
+
             System.out.println("ComName: " + cid + ", type: " + car.getComponentType()+ ", #task: " + taskNum);
             System.out.println("SendQLen: " + car.sendQueueLen.toCMVString());
             System.out.println("RecvQLen: " + car.recvQueueLen.toCMVString());
             System.out.println("Arrival: " + car.recvArrivalCnt.toCMVString());
             System.out.println("processed: " + car.getSimpleCombinedProcessedTuple().toCMVString());
+
+            System.out.println("hisSendQLen: " + hisCar.sendQueueLen.toCMVString());
+            System.out.println("hisRecvQLen: " + hisCar.recvQueueLen.toCMVString());
+            System.out.println("hisArrival: " + hisCar.recvArrivalCnt.toCMVString());
+            System.out.println("hisprocessed: " + hisCar.getSimpleCombinedProcessedTuple().toCMVString());
 
             double avgSendQLen = car.sendQueueLen.getAvg();
             double avgRecvQLen = car.recvQueueLen.getAvg();

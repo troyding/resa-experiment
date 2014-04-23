@@ -2,6 +2,7 @@ package storm.resa.analyzer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * Created by Tom.fu on 16/4/2014.
@@ -52,11 +53,12 @@ public class ComponentAggResult {
         return retVal;
     }
 
-    static void combine(ComponentAggResult from, ComponentAggResult to) throws Exception {
+    static void combine(ComponentAggResult from, ComponentAggResult to) {
 
         if (from != null && to != null) {
             if (from.type != to.type) {
-                throw new Exception("Type is not the same");
+                System.out.println("Type is not the same");
+                return;
             }
 
             to.recvArrivalCnt.addCMV(from.recvArrivalCnt);
@@ -78,10 +80,19 @@ public class ComponentAggResult {
         }
     }
 
-    void addCAR(ComponentAggResult car) throws Exception {
+    static ComponentAggResult getSimpleCombinedHistory(Queue<ComponentAggResult> his, ComponentType t) {
+        ComponentAggResult ret = new ComponentAggResult(t);
+        for (ComponentAggResult hisCar : his) {
+            ret.addCAR(hisCar);
+        }
+        return ret;
+    }
+
+    void addCAR(ComponentAggResult car) {
         if (car != null) {
             if (this.type != car.type) {
-                throw new Exception("Type is not the same");
+                System.out.println("Type is not the same");
+                return;
             }
 
             this.recvArrivalCnt.addCMV(car.recvArrivalCnt);
