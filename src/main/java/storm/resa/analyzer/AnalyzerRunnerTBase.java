@@ -71,9 +71,10 @@ public class AnalyzerRunnerTBase {
         para.put("maxSendQSize", maxSendQSize);
         para.put("maxRecvQSize", maxRecvQSize);
         para.put("sendQSizeThresh", 5.0);
-        para.put("recvQSizeThreshRatio", 0.8);
+        para.put("recvQSizeThreshRatio", 0.6);
         para.put("messageUpdateInterval", 10.0);
         para.put("historySize", 4);
+        para.put("maxThreadAvailable", 6);
 
         for (Map.Entry<String, List<Integer>> e : bolt2t.entrySet()) {
             para.put(e.getKey(), e.getValue().size());
@@ -200,12 +201,15 @@ public class AnalyzerRunnerTBase {
         int maxSendQSize = ConfigUtil.getInt(para, "maxSendQSize", 1024);
         int maxRecvQSize = ConfigUtil.getInt(para, "maxRecvQSize", 1024);
         double sendQSizeThresh = ConfigUtil.getDouble(para, "sendQSizeThresh", 5.0);
-        double recvQSizeThreshRatio = ConfigUtil.getDouble(para, "recvQSizeThreshRatio", 0.8);
+        double recvQSizeThreshRatio = ConfigUtil.getDouble(para, "recvQSizeThreshRatio", 0.6);
         double recvQSizeThresh = recvQSizeThreshRatio * maxRecvQSize;
         double updInterval = ConfigUtil.getDouble(para, "messageUpdateInterval", 10.0);
 
         int historySize = ConfigUtil.getInt(para, "historySize", 4);
+        int maxThreadAvailable = ConfigUtil.getInt(para, "maxThreadAvailable", 6);
+        int maxThreadAvailable4Bolt = 0;
 
+        Map<String, QueueNode> components = new HashMap<>();
 
         for (Map.Entry<String, ComponentAggResult> e : spoutResult.entrySet()) {
             String cid = e.getKey();
@@ -249,6 +253,8 @@ public class AnalyzerRunnerTBase {
             ComponentAggResult car = e.getValue();
             int taskNum = ConfigUtil.getInt(para, cid, 0);
 
+            maxThreadAvailable4Bolt += taskNum;
+
             Queue<ComponentAggResult> his = boltHistory.get(cid);
             if (his == null) {
                 his = new LinkedList<ComponentAggResult>();
@@ -283,7 +289,7 @@ public class AnalyzerRunnerTBase {
             double arrivalRate = car.recvArrivalCnt.getAvg() / updInterval;
             double avgServTime = carCombined.getAvg();
 
-            double pho = arrivalRate * avgServTime / 1000;
+            double rho = arrivalRate * avgServTime / 1000;
             double lambda = arrivalRate * taskNum;
             double mu = 1000.0 / avgServTime;
             double inputOverProsRatio =
@@ -297,7 +303,7 @@ public class AnalyzerRunnerTBase {
             double arrivalRateHis = hisCar.recvArrivalCnt.getAvg() / updInterval;
             double avgServTimeHis = hisCarCombined.getAvg();
 
-            double phoHis = arrivalRateHis * avgServTimeHis / 1000;
+            double rhoHis = arrivalRateHis * avgServTimeHis / 1000;
             double lambdaHis = arrivalRateHis * taskNum;
             double muHis = 1000.0 / avgServTimeHis;
             double inputOverProsRatioHis =
@@ -306,11 +312,24 @@ public class AnalyzerRunnerTBase {
             boolean sendQLenNormalHis = avgSendQLenHis < sendQSizeThresh;
             boolean recvQlenNormalHis = avgRecvQLenHis < recvQSizeThresh;
 
-            System.out.println(String.format("Cur-lambda: %.3f, mu: %.3f, pho: %.3f, inoutRatio: %.3f", lambda, mu, pho, inputOverProsRatio)
+            System.out.println(String.format("Cur-lambda: %.3f, mu: %.3f, rho: %.3f, inoutRatio: %.3f", lambda, mu, rho, inputOverProsRatio)
                     + ",SQ: " + sendQLenNormal + ", RQ: " + recvQlenNormal);
-            System.out.println(String.format("His-lambda: %.3f, mu: %.3f, pho: %.3f, inoutRatio: %.3f", lambdaHis, muHis, phoHis, inputOverProsRatioHis)
+            System.out.println(String.format("His-lambda: %.3f, mu: %.3f, rho: %.3f, inoutRatio: %.3f", lambdaHis, muHis, rhoHis, inputOverProsRatioHis)
                     + ",SQ: " + sendQLenNormalHis + ", RQ: " + recvQlenNormalHis);
             System.out.println("-------------------------------------------------------------------------------");
+
+            QueueNode qn = new QueueNode(lambdaHis, muHis, taskNum, QueueNode.ServiceType.Exponential, inputOverProsRatioHis);
+
+            components.put(cid, qn);
+        }
+
+        double estimatedLatency = SimpleQueueingModelAnalyzer.estCompleteTime(components, true, true) * 1000.0;
+        System.out.println("estimated latency: " + estimatedLatency);
+        para.put("maxThreadAvailable4Bolt", maxThreadAvailable4Bolt);
+        if (estimatedLatency < Double.MAX_VALUE) {
+            SimpleQueueingModelAnalyzer.checkOptimized(components, para, true);
+        } else {
+            System.out.println("System is unstable, Resource is not adequate, therefore, system is not stable and try to find bottleneck first");
         }
     }
 }
