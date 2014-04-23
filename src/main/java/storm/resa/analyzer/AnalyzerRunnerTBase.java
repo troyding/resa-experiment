@@ -101,6 +101,7 @@ public class AnalyzerRunnerTBase {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                Utils.sleep(1000);
             }
         }
     }
@@ -229,8 +230,8 @@ public class AnalyzerRunnerTBase {
 
             System.out.println("-------------------------------------------------------------------------------");
             System.out.println("ComName: " + cid + ", type: " + car.getComponentType() + ", #task: " + taskNum);
-            System.out.println("processed: " + carCombined.toCMVString());
-            System.out.println("his_processed: " + hisCarCombined.toCMVString() + ", hsize: " + his.size());
+            System.out.println("Cur-processed: " + carCombined.toCMVString());
+            System.out.println("His-processed: " + hisCarCombined.toCMVString() + ", hsize: " + his.size());
 
             double avgComplete = carCombined.getAvg();
             boolean satisfyQoS =  avgComplete < targetQoS;
@@ -238,8 +239,8 @@ public class AnalyzerRunnerTBase {
             double avgCompleteHis = hisCarCombined.getAvg();
             boolean satisfyQoSHis =  avgCompleteHis < targetQoS;
 
-            System.out.println("TarQoS: " + targetQoS + ", AvgComplete: " + avgComplete + ", satisfy: " + satisfyQoS);
-            System.out.println("TarQoS: " + targetQoS + ", AvgCompleteHis: " + avgCompleteHis + ", satisfyHis: " + satisfyQoSHis);
+            System.out.println("Cur-TarQoS: " + targetQoS + ", AvgComplete: " + avgComplete + ", satisfy: " + satisfyQoS);
+            System.out.println("His-TarQoS: " + targetQoS + ", AvgComplete: " + avgCompleteHis + ", satisfy: " + satisfyQoSHis);
             System.out.println("-------------------------------------------------------------------------------");
         }
 
@@ -265,15 +266,17 @@ public class AnalyzerRunnerTBase {
             CntMeanVar hisCarCombined = hisCar.getSimpleCombinedProcessedTuple();
 
             System.out.println("ComName: " + cid + ", type: " + car.getComponentType()+ ", #task: " + taskNum);
-            System.out.println("SendQLen: " + car.sendQueueLen.toCMVString());
-            System.out.println("RecvQLen: " + car.recvQueueLen.toCMVString());
-            System.out.println("Arrival: " + car.recvArrivalCnt.toCMVString());
-            System.out.println("processed: " + carCombined.toCMVString());
+            System.out.println("Cur-SendQLen: " + car.sendQueueLen.toCMVString());
+            System.out.println("His-SendQLen: " + hisCar.sendQueueLen.toCMVString());
 
-            System.out.println("hisSendQLen: " + hisCar.sendQueueLen.toCMVString());
-            System.out.println("hisRecvQLen: " + hisCar.recvQueueLen.toCMVString());
-            System.out.println("hisArrival: " + hisCar.recvArrivalCnt.toCMVString());
-            System.out.println("hisprocessed: " + hisCarCombined.toCMVString());
+            System.out.println("Cur-RecvQLen: " + car.recvQueueLen.toCMVString());
+            System.out.println("His-RecvQLen: " + hisCar.recvQueueLen.toCMVString());
+
+            System.out.println("Cur-Arrival: " + car.recvArrivalCnt.toCMVString());
+            System.out.println("His-Arrival: " + hisCar.recvArrivalCnt.toCMVString());
+
+            System.out.println("Cur-processed: " + carCombined.toCMVString());
+            System.out.println("His-processed: " + hisCarCombined.toCMVString());
 
             double avgSendQLen = car.sendQueueLen.getAvg();
             double avgRecvQLen = car.recvQueueLen.getAvg();
@@ -303,7 +306,7 @@ public class AnalyzerRunnerTBase {
             boolean sendQLenNormalHis = avgSendQLenHis < sendQSizeThresh;
             boolean recvQlenNormalHis = avgRecvQLenHis < recvQSizeThresh;
 
-            System.out.println(String.format("lambda: %.3f, mu: %.3f, pho: %.3f, inoutRatio: %.3f", lambda, mu, pho, inputOverProsRatio)
+            System.out.println(String.format("Cur-lambda: %.3f, mu: %.3f, pho: %.3f, inoutRatio: %.3f", lambda, mu, pho, inputOverProsRatio)
                     + ",SQ: " + sendQLenNormal + ", RQ: " + recvQlenNormal);
             System.out.println(String.format("His-lambda: %.3f, mu: %.3f, pho: %.3f, inoutRatio: %.3f", lambdaHis, muHis, phoHis, inputOverProsRatioHis)
                     + ",SQ: " + sendQLenNormalHis + ", RQ: " + recvQlenNormalHis);
