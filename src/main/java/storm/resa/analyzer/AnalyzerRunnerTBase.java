@@ -4,7 +4,6 @@ import backtype.storm.Config;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.utils.Utils;
 import storm.resa.util.ConfigUtil;
-import storm.resa.util.TimeBoundedIterable;
 import storm.resa.util.TopologyHelper;
 
 import java.io.File;
@@ -63,34 +62,55 @@ public class AnalyzerRunnerTBase {
         ///Iterable<Object> dataStream = new JedisResource(args[0], Integer.valueOf(args[1]), args[2]);
         int timeIntervalSec = Integer.valueOf(args[3]);
         long duration = timeIntervalSec * 1000;
+
+        Map<String, Object> para = new HashMap<>();
+        int maxSendQSize = ConfigUtil.getInt(conf, "topology.executor.send.buffer.size", 1024);
+        int maxRecvQSize = ConfigUtil.getInt(conf, "topology.executor.receive.buffer.size", 1024);
+
+        para.put("QoS", 5000.0);
+        para.put("maxSendQSize", maxSendQSize);
+        para.put("maxRecvQSize", maxRecvQSize);
+        para.put("sendQSizeThresh", 5.0);
+        para.put("recvQSizeThreshRatio", 0.8);
+        para.put("messageUpdateInterval", 10.0);
+        para.put("historySize", 4);
+
+        for (Map.Entry<String, List<Integer>> e : bolt2t.entrySet()) {
+            para.put(e.getKey(), e.getValue().size());
+        }
+
+        for (Map.Entry<String, List<Integer>> e : spout2t.entrySet()) {
+            para.put(e.getKey(), e.getValue().size());
+        }
+
+        ConfigUtil.printConfig(para);
+
         while (true) {
             // run analyze for each time batch
-            AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
-            aggAnalyzer.calCMVStat();
+            try {
 
-            if (!aggAnalyzer.getSpoutResult().isEmpty() || !aggAnalyzer.getBoltResult().isEmpty()) {
-                System.out.println("----------- Message reported on " + System.currentTimeMillis() + " -----------------");
+                AggMetricAnalyzer aggAnalyzer = new AggMetricAnalyzer(new JedisResource(args[0], Integer.valueOf(args[1]), args[2]));
+                aggAnalyzer.calCMVStat();
 
-                ///AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getSpoutResult());
-                ///AggMetricAnalyzer.printCMVStatShort(aggAnalyzer.getBoltResult());
+                if (!aggAnalyzer.getSpoutResult().isEmpty() || !aggAnalyzer.getBoltResult().isEmpty()) {
+                    System.out.println("----------- Message reported on " + System.currentTimeMillis() + " -----------------");
 
-                try {
+                    MonitorTopologyStat(aggAnalyzer, conf, bolt2t, spout2t, para);
 
-                    MornitorTopologyStat(aggAnalyzer, conf, bolt2t, spout2t);
-                }catch (Exception e) {
-                    e.printStackTrace();
+                    Utils.sleep(duration);
                 }
-
-                Utils.sleep(duration);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
 
-    public static void MornitorTopologyStat (
+    public static void MonitorTopologyStat (
             AggMetricAnalyzer aggAnalyzer,
             Map<String, Object> conf,
             Map<String, List<Integer>> bolt2t,
-            Map<String, List<Integer>> spout2t) throws Exception {
+            Map<String, List<Integer>> spout2t,
+            Map<String, Object> para ) throws Exception {
 
         Set<String> spoutNames = new HashSet<String>();
         for (Map.Entry<String, List<Integer>> e : spout2t.entrySet()) {
@@ -114,14 +134,20 @@ public class AnalyzerRunnerTBase {
         int boltUpCnt = 0;
         for (Map.Entry<String, ComponentAggResult> e : aggAnalyzer.getSpoutResult().entrySet()) {
             if (spoutNames.contains(e.getKey())) {
-                spoutWinMor.put(e.getKey(), e.getValue());
+                ///caution bugs when using Map.put
+                ComponentAggResult car = new ComponentAggResult(ComponentAggResult.ComponentType.spout);
+                car.addCAR(e.getValue());
+                spoutWinMor.put(e.getKey(), car);
                 spoutUpCnt ++;
             }
         }
 
         for (Map.Entry<String, ComponentAggResult> e : aggAnalyzer.getBoltResult().entrySet()) {
             if (boltNames.contains(e.getKey())) {
-                boltWinMor.put(e.getKey(), e.getValue());
+                ///caution bugs
+                ComponentAggResult car = new ComponentAggResult(ComponentAggResult.ComponentType.bolt);
+                car.addCAR(e.getValue());
+                boltWinMor.put(e.getKey(), car);
                 boltUpCnt ++;
             }
         }
@@ -159,28 +185,6 @@ public class AnalyzerRunnerTBase {
         System.out.println("spWinMorSize: " + spoutWinMor.size() + ",spComMorSize: " + spoutCombineMor.size() + ",spUpCnt: " + spoutUpCnt);
         System.out.println("boWinMorSize: " + boltWinMor.size() + ",boComMorSize: " + boltCombineMor.size() + ",boUpCnt: " + boltUpCnt );
 
-        Map<String, Object> para = new HashMap<>();
-        int maxSendQSize = ConfigUtil.getInt(conf, "topology.executor.send.buffer.size", 1024);
-        int maxRecvQSize = ConfigUtil.getInt(conf, "topology.executor.receive.buffer.size", 1024);
-
-        para.put("QoS", 5000.0);
-        para.put("maxSendQSize", maxSendQSize);
-        para.put("maxRecvQSize", maxRecvQSize);
-        para.put("sendQSizeThresh", 5.0);
-        para.put("recvQSizeThreshRatio", 0.8);
-        para.put("messageUpdateInterval", 10.0);
-        para.put("historySize", 3);
-
-        for (Map.Entry<String, List<Integer>> e : bolt2t.entrySet()) {
-            para.put(e.getKey(), e.getValue().size());
-        }
-
-        for (Map.Entry<String, List<Integer>> e : spout2t.entrySet()) {
-            para.put(e.getKey(), e.getValue().size());
-        }
-
-        ConfigUtil.printConfig(para);
-
         StatReport(spoutCombineMor, boltCombineMor, para);
     }
 
@@ -199,7 +203,7 @@ public class AnalyzerRunnerTBase {
         double recvQSizeThresh = recvQSizeThreshRatio * maxRecvQSize;
         double updInterval = ConfigUtil.getDouble(para, "messageUpdateInterval", 10.0);
 
-        int historySize = ConfigUtil.getInt(para, "historySize", 3);
+        int historySize = ConfigUtil.getInt(para, "historySize", 4);
 
 
         for (Map.Entry<String, ComponentAggResult> e : spoutResult.entrySet()) {
@@ -220,15 +224,22 @@ public class AnalyzerRunnerTBase {
 
             ComponentAggResult hisCar = ComponentAggResult.getSimpleCombinedHistory(his, car.type);
 
+            CntMeanVar carCombined = car.getSimpleCombinedProcessedTuple();
+            CntMeanVar hisCarCombined = hisCar.getSimpleCombinedProcessedTuple();
+
             System.out.println("-------------------------------------------------------------------------------");
             System.out.println("ComName: " + cid + ", type: " + car.getComponentType() + ", #task: " + taskNum);
-            System.out.println("processed: " + car.getSimpleCombinedProcessedTuple().toCMVString());
-            System.out.println("his_processed: " + hisCar.getSimpleCombinedProcessedTuple().toCMVString());
+            System.out.println("processed: " + carCombined.toCMVString());
+            System.out.println("his_processed: " + hisCarCombined.toCMVString() + ", hsize: " + his.size());
 
-            double avgComplete = car.getSimpleCombinedProcessedTuple().getAvg();
+            double avgComplete = carCombined.getAvg();
             boolean satisfyQoS =  avgComplete < targetQoS;
 
+            double avgCompleteHis = hisCarCombined.getAvg();
+            boolean satisfyQoSHis =  avgCompleteHis < targetQoS;
+
             System.out.println("TarQoS: " + targetQoS + ", AvgComplete: " + avgComplete + ", satisfy: " + satisfyQoS);
+            System.out.println("TarQoS: " + targetQoS + ", AvgCompleteHis: " + avgCompleteHis + ", satisfyHis: " + satisfyQoSHis);
             System.out.println("-------------------------------------------------------------------------------");
         }
 
@@ -250,30 +261,52 @@ public class AnalyzerRunnerTBase {
 
             ComponentAggResult hisCar = ComponentAggResult.getSimpleCombinedHistory(his, car.type);
 
+            CntMeanVar carCombined = car.getSimpleCombinedProcessedTuple();
+            CntMeanVar hisCarCombined = hisCar.getSimpleCombinedProcessedTuple();
+
             System.out.println("ComName: " + cid + ", type: " + car.getComponentType()+ ", #task: " + taskNum);
             System.out.println("SendQLen: " + car.sendQueueLen.toCMVString());
             System.out.println("RecvQLen: " + car.recvQueueLen.toCMVString());
             System.out.println("Arrival: " + car.recvArrivalCnt.toCMVString());
-            System.out.println("processed: " + car.getSimpleCombinedProcessedTuple().toCMVString());
+            System.out.println("processed: " + carCombined.toCMVString());
 
             System.out.println("hisSendQLen: " + hisCar.sendQueueLen.toCMVString());
             System.out.println("hisRecvQLen: " + hisCar.recvQueueLen.toCMVString());
             System.out.println("hisArrival: " + hisCar.recvArrivalCnt.toCMVString());
-            System.out.println("hisprocessed: " + hisCar.getSimpleCombinedProcessedTuple().toCMVString());
+            System.out.println("hisprocessed: " + hisCarCombined.toCMVString());
 
             double avgSendQLen = car.sendQueueLen.getAvg();
             double avgRecvQLen = car.recvQueueLen.getAvg();
             double arrivalRate = car.recvArrivalCnt.getAvg() / updInterval;
-            double avgServTime = car.getSimpleCombinedProcessedTuple().getAvg();
+            double avgServTime = carCombined.getAvg();
 
             double pho = arrivalRate * avgServTime / 1000;
             double lambda = arrivalRate * taskNum;
-            double mu = 1000.0 / car.getSimpleCombinedProcessedTuple().getAvg();
+            double mu = 1000.0 / avgServTime;
+            double inputOverProsRatio =
+                    carCombined.getCount() == 0 ? 0.0 : (car.recvArrivalCnt.getTotal() - car.recvArrivalCnt.getCount()) / (double)carCombined.getCount();
 
             boolean sendQLenNormal = avgSendQLen < sendQSizeThresh;
             boolean recvQlenNormal = avgRecvQLen < recvQSizeThresh;
 
-            System.out.println(String.format("lambda: %.5f, mu: %.5f, pho: %.5f", lambda, mu, pho) + ",SQ: " + sendQLenNormal + ", RQ: " + recvQlenNormal);
+            double avgSendQLenHis = hisCar.sendQueueLen.getAvg();
+            double avgRecvQLenHis = hisCar.recvQueueLen.getAvg();
+            double arrivalRateHis = hisCar.recvArrivalCnt.getAvg() / updInterval;
+            double avgServTimeHis = hisCarCombined.getAvg();
+
+            double phoHis = arrivalRateHis * avgServTimeHis / 1000;
+            double lambdaHis = arrivalRateHis * taskNum;
+            double muHis = 1000.0 / avgServTimeHis;
+            double inputOverProsRatioHis =
+                    hisCarCombined.getCount() == 0 ? 0.0 : (hisCar.recvArrivalCnt.getTotal() - hisCar.recvArrivalCnt.getCount()) / (double)hisCarCombined.getCount();
+
+            boolean sendQLenNormalHis = avgSendQLenHis < sendQSizeThresh;
+            boolean recvQlenNormalHis = avgRecvQLenHis < recvQSizeThresh;
+
+            System.out.println(String.format("lambda: %.3f, mu: %.3f, pho: %.3f, inoutRatio: %.3f", lambda, mu, pho, inputOverProsRatio)
+                    + ",SQ: " + sendQLenNormal + ", RQ: " + recvQlenNormal);
+            System.out.println(String.format("His-lambda: %.3f, mu: %.3f, pho: %.3f, inoutRatio: %.3f", lambdaHis, muHis, phoHis, inputOverProsRatioHis)
+                    + ",SQ: " + sendQLenNormalHis + ", RQ: " + recvQlenNormalHis);
             System.out.println("-------------------------------------------------------------------------------");
         }
     }

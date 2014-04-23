@@ -53,7 +53,7 @@ public class ComponentAggResult {
         return retVal;
     }
 
-    static void combine(ComponentAggResult from, ComponentAggResult to) {
+    static void addCARto(ComponentAggResult from, ComponentAggResult to) {
 
         if (from != null && to != null) {
             if (from.type != to.type) {
@@ -73,7 +73,9 @@ public class ComponentAggResult {
                     if (to.tupleProcess.containsKey(e.getKey())) {
                         to.tupleProcess.get(e.getKey()).addCMV(e.getValue());
                     } else {
-                        to.tupleProcess.put(e.getKey(), e.getValue());
+                        CntMeanVar cmv = new CntMeanVar();
+                        cmv.addCMV(e.getValue());
+                        to.tupleProcess.put(e.getKey(), cmv);
                     }
                 }
             }
@@ -104,10 +106,15 @@ public class ComponentAggResult {
 
             if (car.tupleProcess != null) {
                 for (Map.Entry<String, CntMeanVar> e : car.tupleProcess.entrySet()) {
+                    ///for test
+                    ///System.out.println("fortest: " + e.getKey() + "," + e.getValue().toCMVString());
+
                     if (this.tupleProcess.containsKey(e.getKey())) {
                         this.tupleProcess.get(e.getKey()).addCMV(e.getValue());
                     } else {
-                        this.tupleProcess.put(e.getKey(), e.getValue());
+                        CntMeanVar cmv = new CntMeanVar();
+                        cmv.addCMV(e.getValue());
+                        this.tupleProcess.put(e.getKey(), cmv);
                     }
                 }
             }
