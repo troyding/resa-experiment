@@ -28,7 +28,13 @@ public class JedisResource implements Iterable<Object> {
         @Override
         public boolean hasNext() {
             curr = getJedis().lpop(queue);
-            return curr != null;
+            if (curr != null) {
+                return true;
+            } else {
+                jedis.disconnect();
+                curr = null;
+                return false;
+            }
         }
 
         @Override
