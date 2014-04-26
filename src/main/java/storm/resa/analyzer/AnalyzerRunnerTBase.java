@@ -209,7 +209,7 @@ public class AnalyzerRunnerTBase {
         int maxThreadAvailable = ConfigUtil.getInt(para, "maxThreadAvailable", 6);
         int maxThreadAvailable4Bolt = 0;
 
-        Map<String, QueueNode> components = new HashMap<>();
+        Map<String, ServiceNode> components = new HashMap<>();
 
         for (Map.Entry<String, ComponentAggResult> e : spoutResult.entrySet()) {
             String cid = e.getKey();
@@ -318,18 +318,13 @@ public class AnalyzerRunnerTBase {
                     + ",SQ: " + sendQLenNormalHis + ", RQ: " + recvQlenNormalHis);
             System.out.println("-------------------------------------------------------------------------------");
 
-            QueueNode qn = new QueueNode(lambdaHis, muHis, taskNum, QueueNode.ServiceType.Exponential, inputOverProsRatioHis);
+            ServiceNode sn = new ServiceNode(lambdaHis, muHis, ServiceNode.ServiceType.Exponential, inputOverProsRatioHis);
 
-            components.put(cid, qn);
+            components.put(cid, sn);
         }
 
-        double estimatedLatency = SimpleQueueingModelAnalyzer.estCompleteTime(components, true, true) * 1000.0;
-        System.out.println("estimated latency: " + estimatedLatency);
+
         para.put("maxThreadAvailable4Bolt", maxThreadAvailable4Bolt);
-        if (estimatedLatency < Double.MAX_VALUE) {
-            SimpleQueueingModelAnalyzer.checkOptimized(components, para, true);
-        } else {
-            System.out.println("System is unstable, Resource is not adequate, therefore, system is not stable and try to find bottleneck first");
-        }
+        SimpleServiceModelAnalyzer.checkOptimized(components, para, true);
     }
 }

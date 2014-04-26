@@ -1,5 +1,7 @@
 package storm.resa.analyzer;
 
+import java.util.Objects;
+
 /**
  * Created by Tom.fu on 16/4/2014.
  */
@@ -32,12 +34,12 @@ public class CntMeanVar {
     }
 
     void addCMV(CntMeanVar cmv) {
-        if (cmv != null) {
-            count += cmv.count;
-            total += cmv.total;
-            total_2 += cmv.total_2;
-            emptyEntryCnt += cmv.emptyEntryCnt;
-        }
+        ///cmv should not be null here
+        Objects.requireNonNull(cmv);
+        count += cmv.count;
+        total += cmv.total;
+        total_2 += cmv.total_2;
+        emptyEntryCnt += cmv.emptyEntryCnt;
     }
 
     void clear() {

@@ -134,7 +134,7 @@ public class AnalyzerRunnerTBaseIterable {
                     car = new ComponentAggResult(ComponentAggResult.ComponentType.spout);
                     spoutCombineMor.put(componentName, car);
                 }
-                ComponentAggResult.combine(e.getValue(), car);
+                ComponentAggResult.addCARto(e.getValue(), car);
             }
         }
 
@@ -149,7 +149,7 @@ public class AnalyzerRunnerTBaseIterable {
                     car = new ComponentAggResult(ComponentAggResult.ComponentType.bolt);
                     boltCombineMor.put(componentName, car);
                 }
-                ComponentAggResult.combine(e.getValue(), car);
+                ComponentAggResult.addCARto(e.getValue(), car);
             }
         }
 
