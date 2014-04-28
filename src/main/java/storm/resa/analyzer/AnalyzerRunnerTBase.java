@@ -67,7 +67,7 @@ public class AnalyzerRunnerTBase {
         int maxSendQSize = ConfigUtil.getInt(conf, "topology.executor.send.buffer.size", 1024);
         int maxRecvQSize = ConfigUtil.getInt(conf, "topology.executor.receive.buffer.size", 1024);
 
-        para.put("QoS", 5000.0);
+        para.put("QoS", 1500.0);
         para.put("maxSendQSize", maxSendQSize);
         para.put("maxRecvQSize", maxRecvQSize);
         para.put("sendQSizeThresh", 5.0);
