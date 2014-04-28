@@ -323,7 +323,6 @@ public class AnalyzerRunnerTBase {
             components.put(cid, sn);
         }
 
-
         para.put("maxThreadAvailable4Bolt", maxThreadAvailable4Bolt);
         SimpleServiceModelAnalyzer.checkOptimized(components, para, true);
     }

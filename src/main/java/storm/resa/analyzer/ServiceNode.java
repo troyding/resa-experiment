@@ -93,10 +93,27 @@ public class ServiceNode {
 
     ///static function implementation!
 
+    /**
+     * if mu = 0.0 or serverCount not positive, then rho is not defined, we consider it as the unstable case (represented by Double.MAX_VALUE)
+     * otherwise, return the calculation results. Leave the interpretation to the calling function, like isStable();
+     * @param lambda
+     * @param mu
+     * @param serverCount
+     * @return
+     */
     public static double getRho (double lambda, double mu, int serverCount) {
         return (mu == 0.0 || serverCount <= 0) ? Double.MAX_VALUE : lambda / (mu * (double)serverCount);
     }
 
+    /**
+     * First call getRho,
+     * then determine when rho is validate, i.e., rho < 1.0
+     * otherwise return unstable (FALSE)
+     * @param lambda
+     * @param mu
+     * @param serverCount
+     * @return
+     */
     public static boolean isStable (double lambda, double mu, int serverCount) {
         return getRho(lambda, mu, serverCount) < 1.0;
     }
@@ -113,6 +130,16 @@ public class ServiceNode {
         }
     }
 
+
+    /**
+     * First Check isStable(), if it is stable, return the validate estimated erlang delay
+     * else, return Double.Max_VALUE
+     *
+     * @param lambda, average arrival rate
+     * @param mu,   average execute rate
+     * @param serverCount
+     * @return
+     */
     public static double estErlangT(double lambda, double mu, int serverCount) {
         if (isStable(lambda, mu, serverCount)) {
             double r = lambda / (mu * (double)serverCount);

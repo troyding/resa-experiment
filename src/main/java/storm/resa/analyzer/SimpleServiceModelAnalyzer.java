@@ -20,7 +20,9 @@ public class SimpleServiceModelAnalyzer {
      * @param allocation, can be null input, in this case, directly return Infinity to indicator topology unstable
      * @param printDetail, print calculation detail of each service node
      * @param showMinReq, to show the minimun number of required server count for each service node for stable.
-     * @return Double.MAX_VALUE when system is unstable, else the estimated erlang service time.
+     * @return Double.MAX_VALUE when a) input allocation is null (i.e., system is unstable)
+     *                               b) any one of the node is unstable (i.e., lambda/mu > 1, in which case, sn.estErlangT will be Double.MAX_VALUE)
+     *                               else the validate estimated erlang service time.
      */
     public static double getErlangChainTopCompleteTime(
             Map<String, ServiceNode> components,
@@ -112,7 +114,9 @@ public class SimpleServiceModelAnalyzer {
      * @param components
      * @param totalResourceCount
      * @param printDetail
-     * @return, null if system is unstable or total resource is not adequate
+     * @return, null if a) minReq of any component is Integer.MAX_VALUE (invalid parameter mu = 0.0)
+     *                  b) total minReq can not be satisfied (total minReq > totalResourceCount)
+     *                  otherwise, the Map data structure.
      */
     public static Map<String, Integer> suggestAllocation(Map<String, ServiceNode> components, int totalResourceCount, boolean printDetail) {
         Map<String, Integer> retVal = new HashMap<>();
@@ -127,8 +131,7 @@ public class SimpleServiceModelAnalyzer {
 
             retVal.put(cid, minReq);
             if (minReq == Integer.MAX_VALUE) {
-                totalMinReq = Integer.MAX_VALUE;
-                break;
+                return null;
             }
             totalMinReq += minReq;
         }
@@ -173,7 +176,8 @@ public class SimpleServiceModelAnalyzer {
      * Here we separate to two modules: first output allocation, then calculate total #threads included.
      * @param components
      * @param maxAllowedCompleteTime
-     * @return
+     * @return null if a) any service node is not valid (mu = 0.0)
+     *                 b) lowerBoundServiceTime > requiredQoS
      */
     public static Map<String, Integer> getMinReqServerAllocation(Map<String, ServiceNode> components, double maxAllowedCompleteTime) {
         double lowerBoundServiceTime = 0.0;
@@ -221,7 +225,7 @@ public class SimpleServiceModelAnalyzer {
 
         Map<String, Integer> curr = getAllocation(components, para);
 
-        double estimatedLatency = SimpleServiceModelAnalyzer.getErlangChainTopCompleteTime(components, curr) * 1000.0;
+        double estimatedLatency = getErlangChainTopCompleteTime(components, curr) * 1000.0;
         double targetQoS = ConfigUtil.getDouble(para, "QoS", 5000.0);
         boolean targetQoSSatisfied = estimatedLatency < targetQoS;
         int currAllocationCount = totalServerCountInvolved(curr);
