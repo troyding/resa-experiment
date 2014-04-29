@@ -209,6 +209,8 @@ public class AnalyzerRunnerTBase {
         int maxThreadAvailable = ConfigUtil.getInt(para, "maxThreadAvailable", 6);
         int maxThreadAvailable4Bolt = 0;
 
+        double mesuredCompleteTimeMilliSec = 0.0;
+
         Map<String, ServiceNode> components = new HashMap<>();
 
         for (Map.Entry<String, ComponentAggResult> e : spoutResult.entrySet()) {
@@ -246,6 +248,8 @@ public class AnalyzerRunnerTBase {
             System.out.println("Cur-TarQoS: " + targetQoS + ", AvgComplete: " + avgComplete + ", satisfy: " + satisfyQoS);
             System.out.println("His-TarQoS: " + targetQoS + ", AvgComplete: " + avgCompleteHis + ", satisfy: " + satisfyQoSHis);
             System.out.println("-------------------------------------------------------------------------------");
+
+            para.put("avgCompleteHisMilliSec", avgCompleteHis);
         }
 
         for (Map.Entry<String, ComponentAggResult> e : boltResult.entrySet()) {

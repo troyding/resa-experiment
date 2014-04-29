@@ -192,10 +192,15 @@ public class SimpleServiceModelAnalyzer {
      * Caution all the computation involved is in second unit.
      * @param components
      * @param maxAllowedCompleteTime, the unit here is second! consistent with function getErlangChainTopCompleteTime()
+     * @param lowerBoundDelta, this is to set the offset of the lowerBoundServiceTime, we require delta to be positive, and 0 as default.
+     * @param adjRatio, this is to adjust the estimated ErlangServiceTime to fit more closely to the real measured complte time
      * @return null if a) any service node is not in the valid state (mu = 0.0), this is not the case of rho > 1.0, just for checking mu
      *                 b) lowerBoundServiceTime > requiredQoS
      */
-    public static Map<String, Integer> getMinReqServerAllocation(Map<String, ServiceNode> components, double maxAllowedCompleteTime) {
+    public static Map<String, Integer> getMinReqServerAllocation(Map<String, ServiceNode> components,
+                                                                 double maxAllowedCompleteTime,
+                                                                 double lowerBoundDelta,
+                                                                 double adjRatio) {
         double lowerBoundServiceTime = 0.0;
         int totalMinReq = 0;
         for (Map.Entry<String, ServiceNode> e : components.entrySet()) {
@@ -210,20 +215,29 @@ public class SimpleServiceModelAnalyzer {
             totalMinReq += e.getValue().getMinReqServerCount();
         }
 
-        if (lowerBoundServiceTime > maxAllowedCompleteTime) {
+        if (lowerBoundServiceTime + lowerBoundDelta > maxAllowedCompleteTime) {
             return null;
         }
 
         Map<String, Integer> currAllocation = suggestAllocation(components, totalMinReq, false);
-        double currTime = getErlangChainTopCompleteTime(components, currAllocation);
+        double currTime = getErlangChainTopCompleteTime(components, currAllocation) * adjRatio;
+
         while (currTime > maxAllowedCompleteTime) {
             totalMinReq ++;
             currAllocation = suggestAllocation(components, totalMinReq, false);
             Objects.requireNonNull(currAllocation, "Allocation here should not be null!");
-            currTime = getErlangChainTopCompleteTime(components, currAllocation);
+            currTime = getErlangChainTopCompleteTime(components, currAllocation) * adjRatio;
         }
 
         return currAllocation;
+    }
+
+    public static Map<String, Integer> getMinReqServerAllocation(Map<String, ServiceNode> components, double maxAllowedCompleteTime) {
+        return getMinReqServerAllocation(components, maxAllowedCompleteTime, 0.0, 1.0);
+    }
+
+    public static Map<String, Integer> getMinReqServerAllocation(Map<String, ServiceNode> components, double maxAllowedCompleteTime, double adjRatio) {
+        return getMinReqServerAllocation(components, maxAllowedCompleteTime, 0.0, adjRatio);
     }
 
     public static int totalServerCountInvolved(Map<String, Integer> allocation) {
@@ -248,40 +262,46 @@ public class SimpleServiceModelAnalyzer {
         ///Caution about the time unit!, second is used in all the functions of calculation
         /// millisecond is used in the output display!
         double estimatedLatencyMilliSec = getErlangChainTopCompleteTimeMilliSec(components, curr);
+        double realLatencyMilliSec = ConfigUtil.getDouble(para, "avgCompleteHisMilliSec", estimatedLatencyMilliSec);
+
+        ///for better estimation, we remain (learn) this ratio, and assume that the estimated is always smaller than real.
+        double underEstimateRatio = Math.max(1.0, realLatencyMilliSec / estimatedLatencyMilliSec);
+
         double targetQoSMilliSec = ConfigUtil.getDouble(para, "QoS", 5000.0);
         boolean targetQoSSatisfied = estimatedLatencyMilliSec < targetQoSMilliSec;
         int currAllocationCount = totalServerCountInvolved(curr);
 
-        System.out.println("estimated latency: " + estimatedLatencyMilliSec + ", targetQoSSatisfied: " + targetQoSSatisfied);
+        System.out.println("estimated: " + estimatedLatencyMilliSec + ", estiQoSSatisfied: " + targetQoSSatisfied
+                + ", real: " + realLatencyMilliSec + ", realQoSSatisfied: " + (realLatencyMilliSec < targetQoSMilliSec));
 
-        Map<String, Integer> minReqAllocation =  getMinReqServerAllocation(components, targetQoSMilliSec / 1000.0);
+        Map<String, Integer> minReqAllocation = getMinReqServerAllocation(components, targetQoSMilliSec / 1000.0, underEstimateRatio);
         int minReqTotalServerCount = minReqAllocation == null ? Integer.MAX_VALUE : totalServerCountInvolved(minReqAllocation);
         double minReqQoSMilliSec = getErlangChainTopCompleteTimeMilliSec(components, minReqAllocation);
+        double adjMinReqQoSMilliSec = getErlangChainTopCompleteTimeMilliSec(components, minReqAllocation) * underEstimateRatio;
 
         if (minReqAllocation == null) {
             System.out.println("Caution: Target QoS is problematic, can not be achieved!");
         } else {
-            System.out.println("MinReqTotalServerCount: " + minReqTotalServerCount + ", minReqQoS: " + minReqQoSMilliSec + ", optAllo: ");
+            System.out.println("MinReqTotalServerCount: " + minReqTotalServerCount + ", minReqQoS: " + minReqQoSMilliSec);
+            System.out.println("underEstimateRatio: " + underEstimateRatio + ", adjMinReqQoS: " + adjMinReqQoSMilliSec + ", optAllo: ");
             printAllocation(minReqAllocation);
         }
 
-        if (targetQoSSatisfied) {
-            Map<String, Integer> after = suggestAllocation(components, currAllocationCount, printDetail);
-            System.out.println("---------------------- Current Allocation ----------------------");
-            printAllocation(curr);
-            System.out.println("---------------------- Suggested Allocation ----------------------");
-            printAllocation(after);
-        } else {
-            if (minReqAllocation != null) {
-                int remainCount = minReqTotalServerCount - currAllocationCount;
-                if (remainCount > 0) {
-                    System.out.println("Require " + remainCount + " additional threads!!!");
-                } else {
-                    System.out.println("Rebalance to minReqAllo");
-                }
+        if (minReqAllocation != null) {
+            int remainCount = minReqTotalServerCount - currAllocationCount;
+            if (remainCount > 0) {
+                System.out.println("Require " + remainCount + " additional threads!!!");
             } else {
-                System.out.println("Caution: Target QoS can never be achieved!");
+                System.out.println("Rebalance the current to suggested");
+                Map<String, Integer> after = suggestAllocation(components, currAllocationCount, printDetail);
+                System.out.println("---------------------- Current Allocation ----------------------");
+                printAllocation(curr);
+                System.out.println("---------------------- Suggested Allocation ----------------------");
+                printAllocation(after);
             }
+        } else {
+            System.out.println("Caution: Target QoS can never be achieved!");
         }
+
     }
 }
