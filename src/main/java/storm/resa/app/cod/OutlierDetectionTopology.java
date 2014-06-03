@@ -2,6 +2,7 @@ package storm.resa.app.cod;
 
 import backtype.storm.Config;
 import backtype.storm.StormSubmitter;
+import backtype.storm.metric.LoggingMetricsConsumer;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 import storm.resa.util.ConfigUtil;
@@ -54,6 +55,8 @@ public class OutlierDetectionTopology {
                 .fieldsGrouping("projection", new Fields(Projection.PROJECTION_ID_FIELD));
         builder.setBolt("updater", new Updater(randVectors.size()), ConfigUtil.getInt(conf, "updater.parallelism", 1))
                 .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
+
+        conf.registerMetricsConsumer(LoggingMetricsConsumer.class);
 
         StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
     }
