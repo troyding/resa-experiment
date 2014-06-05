@@ -1,5 +1,7 @@
 package storm.resa.util;
 
+import java.util.ArrayList;
+
 /**
  * Created by Tom.fu on 23/4/2014.
  */
@@ -16,6 +18,20 @@ public class UsefulMethod {
                 ret = ret * i;
             }
             return ret;
+        }
+    }
+
+    public static void powerCombination(int[] numbers) {
+
+        int n = numbers.length;
+
+        for (int i = 1; i < (1 << n); ++i) {
+            ArrayList<Integer> emitNumber = new ArrayList<Integer>();
+            for (int j = 0; j < n; ++j)
+                if ((i & (1 << j)) > 0) {
+                    emitNumber.add(numbers[j]);
+                }
+            System.out.println(i + "," + emitNumber);
         }
     }
 }
