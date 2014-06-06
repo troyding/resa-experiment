@@ -3,6 +3,7 @@ package storm.resa.migrate;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.DoubleStream;
 
 /**
@@ -31,13 +32,14 @@ public class PackingAlg {
         double avg = DoubleStream.of(workloads).sum() / numPartition;
         Map<String, Pack> cache = new HashMap<>();
         calc0(workloads, 0, workloads.length, avg, numPartition, cache);
-        return cache.get("0-" + workloads.length + "-" + numPartition).packing;
+        int[] ret = cache.get("0-" + workloads.length + "-" + numPartition).packing;
+        return Objects.requireNonNull(ret, "Cannot arrived here");
     }
 
     public static double calc0(double[] workloads, int start, int end, double avg, int numPartition,
                                Map<String, Pack> cache) {
         if (end - start < numPartition || numPartition == 0) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("start=" + start + ", end=" + end + ", numPartition=" + numPartition);
         }
         String key = start + "-" + end + "-" + numPartition;
         Pack pack = cache.get(key);

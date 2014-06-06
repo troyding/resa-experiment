@@ -34,7 +34,7 @@ public class WordCountTopology {
         @Override
         public void execute(Tuple input, BasicOutputCollector collector) {
             String sentence = input.getString(0);
-            StringTokenizer tokenizer = new StringTokenizer(sentence, "\\s+");
+            StringTokenizer tokenizer = new StringTokenizer(sentence);
             while (tokenizer.hasMoreTokens()) {
                 collector.emit(Arrays.asList((Object) tokenizer.nextToken()));
             }
