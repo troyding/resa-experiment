@@ -26,13 +26,15 @@ public class FrequentPatternTopology implements Constant {
         String host = (String) conf.get("redis.host");
         int port = ((Number) conf.get("redis.port")).intValue();
         String queue = (String) conf.get("redis.queue");
-        builder.setSpout("input", new SentenceSpout(host, port, queue), ConfigUtil.getInt(conf, "spout.parallelism", 1));
+        builder.setSpout("input", new SentenceSpout(host, port, queue), ConfigUtil.getInt(conf, "fp.spout.parallelism", 1));
 
-        builder.setBolt("generator", new PatternGenerator(), ConfigUtil.getInt(conf, "generator.parallelism", 1))
-                .shuffleGrouping("input");
-        builder.setBolt("detector", new Detector(), ConfigUtil.getInt(conf, "detector.parallelism", 1))
+        builder.setBolt("generator", new PatternGenerator(), ConfigUtil.getInt(conf, "fp.generator.parallelism", 1))
+                .shuffleGrouping("input")
+                .setNumTasks(ConfigUtil.getInt(conf, "fp.generator.tasks", 1));
+        builder.setBolt("detector", new Detector(), ConfigUtil.getInt(conf, "fp.detector.parallelism", 1))
                 .fieldsGrouping("generator", new Fields(PATTERN_FIELD))
-                .fieldsGrouping("detector", FEEDBACK_STREAM, new Fields(PATTERN_FIELD));
+                .fieldsGrouping("detector", FEEDBACK_STREAM, new Fields(PATTERN_FIELD))
+                .setNumTasks(ConfigUtil.getInt(conf, "fp.detector.tasks", 1));
 
         StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
     }

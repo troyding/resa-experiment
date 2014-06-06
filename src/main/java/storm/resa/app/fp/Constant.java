@@ -10,4 +10,6 @@ public interface Constant {
     public static final String PATTERN_FIELD = "pattern";
     public static final String FEEDBACK_STREAM = "feedback";
 
+    public static final String THRESHOLD_PROP = "fp.pattern.threshold";
+
 }
