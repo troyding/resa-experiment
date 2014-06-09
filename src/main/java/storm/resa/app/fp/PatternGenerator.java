@@ -48,6 +48,7 @@ public class PatternGenerator extends BaseRichBolt implements Constant {
         int[] wordIds = words.stream().map(this::word2Id).filter(Objects::nonNull).mapToInt(i -> i).toArray();
         emitSubPattern(wordIds, collector, input);
         words.clear();
+        collector.ack(input);
     }
 
     private void emitSubPattern(int[] wordIds, OutputCollector collector, Tuple input) {
@@ -61,7 +62,7 @@ public class PatternGenerator extends BaseRichBolt implements Constant {
                 }
             }
             collector.emit(input, Arrays.asList(new WordList(Arrays.copyOf(buffer, k)),
-                    input.getValueByField(SentenceSpout.IS_ADD_FIELD)));
+                    input.getValueByField(IS_ADD_FIELD)));
         }
     }
 

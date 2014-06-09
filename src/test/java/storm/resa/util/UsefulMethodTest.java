@@ -9,8 +9,9 @@ public class UsefulMethodTest extends TestCase {
 
     public void testPowerCombination() throws Exception {
 
-        int[] num = new int[]{1, 2, 3, 5};
+        int[] num = new int[]{1, 2};
         UsefulMethod.powerCombination(num);
+        UsefulMethod.powerCombinationExclude(num);
     }
 
     public void testSortHaspMapByIntegerValue() {
@@ -30,11 +31,11 @@ public class UsefulMethodTest extends TestCase {
     public void testFindTopKKeywords() {
         String workPath = "C:\\Users\\Tom.fu\\Desktop\\storm-experiment\\";
         ///String inputFile = workPath + "forTest.txt";
-        String inputFile = workPath + "tweet.txt";
+        String inputFile = workPath + "tweet.head100000.txt";
         String stopWordFile = workPath + "english.stop.txt";
         String output = workPath + "forTweetOutput.txt";
 
-        UsefulMethod.findTopKKeywords(100000, Paths.get(inputFile),Paths.get(stopWordFile),Paths.get(output));
+        UsefulMethod.findTopKKeywords(1000, Paths.get(inputFile),Paths.get(stopWordFile),Paths.get(output));
 
 
     }

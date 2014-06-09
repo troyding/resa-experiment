@@ -69,22 +69,22 @@ public class Detector extends BaseRichBolt implements Constant {
 
     @Override
     public void execute(Tuple input) {
-        WordList partten = (WordList) input.getValueByField(PATTERN_FIELD);
-        Entry entry = patterns.computeIfAbsent(partten, (k) -> new Entry());
+        WordList pattern = (WordList) input.getValueByField(PATTERN_FIELD);
+        Entry entry = patterns.computeIfAbsent(pattern, (k) -> new Entry());
         if (!input.getSourceStreamId().equals(FEEDBACK_STREAM)) {
             if (input.getBooleanByField(IS_ADD_FIELD)) {
                 if (entry.incCountAndGet() == threshold && entry.getRefCount() == 0) {
                     //detect a new pattern
                     entry.incRefCount();
                     entry.setDetectedBySelf(true);
-                    emitSubPattern(partten.getWords(), collector, true);
-                    collector.emit(Arrays.asList(partten));
+                    emitSubPattern(pattern.getWords(), collector, true);
+                    collector.emit(Arrays.asList(pattern));
                 }
             } else {
                 if (entry.decCountAndGet() == threshold - 1 && entry.isDetectedBySelf()) {
                     entry.decRefCount();
                     // decrease sub pattern
-                    emitSubPattern(partten.getWords(), collector, false);
+                    emitSubPattern(pattern.getWords(), collector, false);
                 }
             }
         } else {
@@ -95,8 +95,9 @@ public class Detector extends BaseRichBolt implements Constant {
             }
         }
         if (entry.unused()) {
-            patterns.remove(partten);
+            patterns.remove(pattern);
         }
+        collector.ack(input);
     }
 
     private void emitSubPattern(int[] wordIds, OutputCollector collector, boolean isAdd) {
@@ -109,7 +110,7 @@ public class Detector extends BaseRichBolt implements Constant {
                     buffer[k++] = wordIds[j];
                 }
             }
-            collector.emit(Arrays.asList(new WordList(Arrays.copyOf(buffer, k)), isAdd));
+            collector.emit(FEEDBACK_STREAM, Arrays.asList(new WordList(Arrays.copyOf(buffer, k)), isAdd));
         }
     }
 
