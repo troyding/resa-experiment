@@ -27,7 +27,7 @@ public class PatternGenerator extends BaseRichBolt implements Constant {
         words = new HashSet<>();
         int id = 0;
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("dict.txt")))) {
+                new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("/dict.txt")))) {
             String line = null;
             while ((line = reader.readLine()) != null) {
                 dict.put(line, id++);
@@ -39,7 +39,7 @@ public class PatternGenerator extends BaseRichBolt implements Constant {
 
     @Override
     public void execute(Tuple input) {
-        String sentence = input.getStringByField(SentenceSpout.SENTENCE_FIELD);
+        String sentence = input.getStringByField(SENTENCE_FIELD);
         StringTokenizer tokenizer = new StringTokenizer(sentence.replaceAll("\\p{P}|\\p{S}", " "));
         while (tokenizer.hasMoreTokens()) {
             String word = tokenizer.nextToken();

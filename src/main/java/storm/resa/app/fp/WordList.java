@@ -1,11 +1,12 @@
 package storm.resa.app.fp;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
  * Created by ding on 14-6-5.
  */
-public class WordList {
+public class WordList implements Serializable {
 
     private int[] words;
 
