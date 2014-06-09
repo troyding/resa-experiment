@@ -41,6 +41,20 @@ public class UsefulMethod {
         }
     }
 
+    public static void powerCombinationExclude(int[] numbers) {
+
+        int n = numbers.length;
+
+        for (int i = 1; i < (1 << n) - 1; ++i) {
+            ArrayList<Integer> emitNumber = new ArrayList<Integer>();
+            for (int j = 0; j < n; ++j)
+                if ((i & (1 << j)) > 0) {
+                    emitNumber.add(numbers[j]);
+                }
+            System.out.println(i + "," + emitNumber);
+        }
+    }
+
     public static void findTopKKeywords(int topK, Path inputFile, Path stopWordFile, Path outputFile) {
 
         Map<String, Integer> wordCountMap = new HashMap<>();
@@ -50,7 +64,7 @@ public class UsefulMethod {
             reader.lines().forEach((line) -> {
                 StringTokenizer tokenizer = new StringTokenizer(line.replaceAll("\\p{P}|\\p{S}", " "));
                 while (tokenizer.hasMoreTokens()) {
-                    String word = tokenizer.nextToken().trim();
+                    String word = tokenizer.nextToken().toLowerCase().trim();
                     if (!word.isEmpty()) {
                         wordCountMap.putIfAbsent(word, 0);
                         wordCountMap.computeIfPresent(word, (k, v) -> v + 1);
@@ -63,7 +77,7 @@ public class UsefulMethod {
 
         try (BufferedReader reader = Files.newBufferedReader(stopWordFile)) {
             reader.lines().forEach((line) -> {
-                String word = line.trim();
+                String word = line.toLowerCase().trim();
                 if (!word.isEmpty()) {
                     wordCountMap.computeIfPresent(word, (k, v) -> 0);
                 }
