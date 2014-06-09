@@ -27,4 +27,9 @@ public class WordList implements Serializable {
     public boolean equals(Object obj) {
         return Arrays.equals(words, ((WordList) obj).words);
     }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(words);
+    }
 }
