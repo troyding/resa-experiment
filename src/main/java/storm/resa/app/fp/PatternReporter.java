@@ -10,7 +10,10 @@ import backtype.storm.tuple.Tuple;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Created by ding on 14-6-5.
@@ -18,15 +21,11 @@ import java.util.*;
 public class PatternReporter extends BaseRichBolt implements Constant {
 
     private OutputCollector collector;
-    private Set<String> words;
-    private Map<String, Integer> dict;
     private Map<Integer, String> invdict;
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
-        words = new HashSet<>();
-        dict = new HashMap<>();
         int id = 0;
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(this.getClass().getResourceAsStream("/dict.txt")))) {
@@ -42,37 +41,9 @@ public class PatternReporter extends BaseRichBolt implements Constant {
 
     @Override
     public void execute(Tuple input) {
-        String sentence = input.getStringByField(SENTENCE_FIELD);
-        StringTokenizer tokenizer = new StringTokenizer(sentence.replaceAll("\\p{P}|\\p{S}", " "));
-        while (tokenizer.hasMoreTokens()) {
-            String word = tokenizer.nextToken();
-            words.add(word);
-        }
-        int[] wordIds = words.stream().map(this::word2Id).filter(Objects::nonNull).mapToInt(i -> i).toArray();
-        emitSubPattern(wordIds, collector, input);
-        words.clear();
+        WordList wordList = (WordList) input.getValueByField(PATTERN_FIELD);
+        List<String> words = IntStream.of(wordList.getWords()).mapToObj(invdict::get).collect(Collectors.toList());
         collector.ack(input);
-    }
-
-    private void emitSubPattern(int[] wordIds, OutputCollector collector, Tuple input) {
-        int n = wordIds.length;
-        int[] buffer = new int[n];
-        for (int i = 1; i < (1 << n); i++) {
-            int k = 0;
-            for (int j = 0; j < n; j++) {
-                if ((i & (1 << j)) > 0) {
-                    buffer[k++] = wordIds[j];
-                }
-            }
-            System.out.println("In PatternGenerator, emit: "
-                    + Arrays.asList(new WordList(Arrays.copyOf(buffer, k)), input.getValueByField(IS_ADD_FIELD)));
-            collector.emit(input, Arrays.asList(new WordList(Arrays.copyOf(buffer, k)),
-                    input.getValueByField(IS_ADD_FIELD)));
-        }
-    }
-
-    private Integer word2Id(String word) {
-        return dict.get(word);
     }
 
     @Override

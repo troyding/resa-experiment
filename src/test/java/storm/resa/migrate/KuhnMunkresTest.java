@@ -7,6 +7,9 @@ import org.junit.Test;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class KuhnMunkresTest {
@@ -24,10 +27,12 @@ public class KuhnMunkresTest {
     public void testGetMaxBipartie() throws Exception {
         double[] workload = Files.readAllLines(Paths.get("/Users/ding/Desktop/workload.txt")).stream().map(String::trim)
                 .filter(s -> !s.isEmpty()).mapToDouble(Double::valueOf).toArray();
-        ExecutorDetails[] ret1 = allocation2Range(PackingAlg.calc(workload, 3));
-        ExecutorDetails[] ret2 = allocation2Range(PackingAlg.calc(workload, 4));
-        System.out.println(Arrays.toString(ret1));
-        System.out.println(Arrays.toString(ret2));
+        int before = 2;
+        int after = 3;
+        ExecutorDetails[] ret1 = allocation2Range(PackingAlg.calc(workload, before));
+        ExecutorDetails[] ret2 = allocation2Range(PackingAlg.calc(workload, after));
+        System.out.println(before + " executors: " + Arrays.toString(ret1));
+        System.out.println(after + " executors: " + Arrays.toString(ret2));
         double[][] weight = new double[ret1.length][ret2.length];
         for (int i = 0; i < ret1.length; i++) {
             for (int j = 0; j < ret2.length; j++) {
@@ -35,8 +40,13 @@ public class KuhnMunkresTest {
             }
         }
         KuhnMunkres km = new KuhnMunkres(Math.max(ret1.length, ret2.length));
-        int[][] res = km.getMaxBipartie(weight, new double[1]);
-        Stream.of(res).forEach(e -> System.out.println(Arrays.toString(e)));
+        double[] maxOverlap = new double[1];
+        int[][] res = km.getMaxBipartie(weight, maxOverlap);
+        System.out.println("best match: " + Stream.of(res).map(Arrays::toString).collect(Collectors.joining()));
+        System.out.println("task to move: " + (workload.length - (int) maxOverlap[0]));
+        Set<Integer> toMove = new HashSet<>();
+        Stream.of(res).map(e -> new HashSet<>()).forEach(toMove::removeAll);
+        System.out.println("");
     }
 
     private ExecutorDetails[] allocation2Range(int[] allc) {

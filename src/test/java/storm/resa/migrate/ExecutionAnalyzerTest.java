@@ -12,7 +12,7 @@ public class ExecutionAnalyzerTest {
     @Test
     public void testCalcStat() throws Exception {
         int exeCnt = 16;
-        Iterable<String> source = new RedisQueueIterable("192.168.0.30", 6379, "wc-metrics", 1000000);
+        Iterable<String> source = new RedisQueueIterable("192.168.0.30", 6379, "wc-metrics-0608", 1000000);
         ExecutionAnalyzer analyzer = new ExecutionAnalyzer(source);
         analyzer.calcStat();
 

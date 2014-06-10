@@ -45,8 +45,10 @@ public class PatternGenerator extends BaseRichBolt implements Constant {
             String word = tokenizer.nextToken();
             words.add(word);
         }
-        int[] wordIds = words.stream().map(this::word2Id).filter(Objects::nonNull).mapToInt(i -> i).toArray();
-        emitSubPattern(wordIds, collector, input);
+        int[] wordIds = words.stream().map(this::word2Id).filter(Objects::nonNull).mapToInt(i -> i).sorted().toArray();
+        if (wordIds.length > 0) {
+            emitSubPattern(wordIds, collector, input);
+        }
         words.clear();
         collector.ack(input);
     }
