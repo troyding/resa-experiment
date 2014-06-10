@@ -25,9 +25,10 @@ public class PatternGenerator extends BaseRichBolt implements Constant {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
         words = new HashSet<>();
+        dict = new HashMap<>();
         int id = 0;
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("/dict.txt")))) {
+                new InputStreamReader(this.getClass().getResourceAsStream("/dict.txt")))) {
             String line = null;
             while ((line = reader.readLine()) != null) {
                 dict.put(line, id++);

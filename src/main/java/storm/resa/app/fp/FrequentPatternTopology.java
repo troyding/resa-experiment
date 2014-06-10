@@ -1,7 +1,7 @@
 package storm.resa.app.fp;
 
 import backtype.storm.Config;
-import backtype.storm.StormSubmitter;
+import backtype.storm.LocalCluster;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 import storm.resa.util.ConfigUtil;
@@ -21,6 +21,8 @@ public class FrequentPatternTopology implements Constant {
             throw new RuntimeException("cannot find conf file " + args[1]);
         }
 
+        LocalCluster cluster = new LocalCluster();
+
         TopologyBuilder builder = new TopologyBuilder();
 
         String host = (String) conf.get("redis.host");
@@ -36,7 +38,14 @@ public class FrequentPatternTopology implements Constant {
                 .fieldsGrouping("detector", FEEDBACK_STREAM, new Fields(PATTERN_FIELD))
                 .setNumTasks(ConfigUtil.getInt(conf, "fp.detector.tasks", 1));
 
-        StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
+        builder.setBolt("reporter", new PatternReporter(), ConfigUtil.getInt(conf, "fp.reporter.parallelism", 1))
+                .fieldsGrouping("detector", REPORT_STREAM, new Fields(PATTERN_FIELD))
+                .setNumTasks(ConfigUtil.getInt(conf, "fp.reporter.tasks", 1));
+
+        ///StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
+
+        ///conf.setDebug(true);
+        cluster.submitTopology("fp", conf, builder.createTopology());
     }
 
 }
