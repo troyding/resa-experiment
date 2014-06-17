@@ -5,13 +5,15 @@ fp.generator.parallelism: 1
 fp.generator.tasks: 1
 fp.detector.parallelism: 2
 fp.detector.tasks: 3
+fp.reporter.parallelism: 1
+fp.reporter.tasks: 1
 
-fp.pattern.threshold: 20
+fp.pattern.threshold: 3
 
 #set worker count
 topology.workers: 1
 
 ##redis config if redis spout is enabled
-redis.host: "localhost"
+redis.host: "192.168.0.30"
 redis.port: 6379
-redis.queue: "vectors"
+redis.queue: "sentences"
