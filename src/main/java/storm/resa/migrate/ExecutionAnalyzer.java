@@ -4,6 +4,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
@@ -45,9 +46,9 @@ public class ExecutionAnalyzer {
 
     private Iterable<String> dataStream;
     private ObjectMapper objectMapper = new ObjectMapper();
-    private Map<String, ExecutionStat> executeStat = new TreeMap<>();
+    private SortedMap<String, ExecutionStat> executeStat = new TreeMap<>();
 
-    public void calcStat() {
+    public ExecutionAnalyzer calcStat() {
         dataStream.forEach(metricStr -> {
             final String comp;
             final int taskId;
@@ -72,9 +73,10 @@ public class ExecutionAnalyzer {
                 }
             });
         });
+        return this;
     }
 
-    public Map<String, ExecutionStat> getStat() {
+    public SortedMap<String, ExecutionStat> getStat() {
         return executeStat;
     }
 

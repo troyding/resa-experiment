@@ -1,18 +1,38 @@
 package storm.resa.migrate;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import storm.resa.util.RedisQueueIterable;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ExecutionAnalyzerTest {
 
+    private Iterable<String> source;
+
+    @Before
+    public void init() {
+        source = new RedisQueueIterable("192.168.0.30", 6379, "wc-metrics-128", 1000000);
+    }
+
+    @After
+    public void cleanup() {
+        if (source instanceof Closeable) {
+            try {
+                ((Closeable) source).close();
+            } catch (IOException e) {
+            }
+        }
+    }
+
     @Test
     public void testCalcStat() throws Exception {
         int exeCnt = 16;
-        Iterable<String> source = new RedisQueueIterable("192.168.0.30", 6379, "wc-metrics-128", 1000000);
         ExecutionAnalyzer analyzer = new ExecutionAnalyzer(source);
         analyzer.calcStat();
 
@@ -20,8 +40,7 @@ public class ExecutionAnalyzerTest {
             System.out.println(k + "->" + v);
         });
 
-        Map<String, ExecutionAnalyzer.ExecutionStat> data =
-                ((SortedMap<String, ExecutionAnalyzer.ExecutionStat>) analyzer.getStat()).subMap("counter", "counter;");
+        Map<String, ExecutionAnalyzer.ExecutionStat> data = analyzer.getStat().subMap("counter", "counter;");
         data.forEach((k, v) -> System.out.println(v.getCount()));
         System.out.println("avg:" + data.entrySet().stream().mapToLong(e -> e.getValue().getCount()).average());
         int[] exe2Tasks = computeTasks(data.size(), exeCnt);
