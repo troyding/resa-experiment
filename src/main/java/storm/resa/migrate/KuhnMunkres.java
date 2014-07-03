@@ -21,12 +21,12 @@ public class KuhnMunkres {
         ly = new double[maxN];
         slack = new double[maxN];
         match = new int[maxN];
+        weights = new double[maxN][maxN];
     }
 
     public int[][] getMaxBipartie(double weight[][], double[] result) {
         if (!preProcess(weight)) {
-            result[0] = 0.0;
-            return null;
+            throw new IllegalArgumentException("Data overflow, max num is " + maxN);
         }
         //initialize memo data for class
         //initialize label X and Y
@@ -98,14 +98,12 @@ public class KuhnMunkres {
         }
         Arrays.fill(match, -1);
         n = Math.max(lenX, lenY);
-        weights = new double[n][n];
-        for (int i = 0; i < n; i++) {
-            Arrays.fill(weights[i], 0.0);
-        }
         for (int i = 0; i < lenX; i++) {
-            for (int j = 0; j < lenY; j++) {
-                weights[i][j] = weight[i][j];
-            }
+            System.arraycopy(weight[i], 0, weights[i], 0, lenY);
+            Arrays.fill(weights[i], lenY, n, 0.0);
+        }
+        for (int i = lenX; i < n; i++) {
+            Arrays.fill(weights[i], 0.0);
         }
         return true;
     }
