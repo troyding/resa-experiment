@@ -21,7 +21,6 @@ public class KuhnMunkres {
         ly = new double[maxN];
         slack = new double[maxN];
         match = new int[maxN];
-        weights = new double[maxN][maxN];
     }
 
     public int[][] getMaxBipartie(double weight[][], double[] result) {
@@ -98,12 +97,11 @@ public class KuhnMunkres {
         }
         Arrays.fill(match, -1);
         n = Math.max(lenX, lenY);
+        weights = new double[n][n];
         for (int i = 0; i < lenX; i++) {
-            System.arraycopy(weight[i], 0, weights[i], 0, lenY);
-            Arrays.fill(weights[i], lenY, n, 0.0);
-        }
-        for (int i = lenX; i < n; i++) {
-            Arrays.fill(weights[i], 0.0);
+            for (int j = 0; j < lenY; j++) {
+                weights[i][j] = weight[i][j];
+            }
         }
         return true;
     }

@@ -58,10 +58,10 @@ public class SinglePackCalculator extends PackCalculator {
         double gain = Double.MIN_VALUE;
         for (int i = split; i < wEnd; i++) {
             if (totalWorkload(wStart, i) > loadUpperLimit || wEnd - i < numPartition - 1) {
-                continue;
+                break;
             }
-            int startPack = findPack(split);
-            int stopPack = currPack[startPack].start < split ? startPack + 1 : startPack;
+            int startPack = findPack(i);
+            int stopPack = currPack[startPack].start < i ? startPack + 1 : startPack;
             startPack = Math.max(startPack, pStart);
             stopPack = Math.min(stopPack, pEnd);
             for (int k = startPack; k <= stopPack; k++) {

@@ -52,6 +52,7 @@ public class FastCalculator extends PackCalculator {
 
     private int stepForward(Range[] orgPack, int point) {
         double workload = totalWorkload(orgPack[point].start, orgPack[point].end + 1);
+        int newPos = orgPack[point].end;
         int j = orgPack[point].end + 1;
         final int upBound = orgPack[point + 1].end;
         while (j < upBound && (workload += normalizedWordloads[j]) <= loadUpperLimit) {
@@ -60,16 +61,16 @@ public class FastCalculator extends PackCalculator {
             double g = totalGain(orgPack);
             if (g > gain) {
                 gain = g;
-            } else {
-                break;
+                newPos = j;
             }
             j++;
         }
-        return j - 1;
+        return newPos;
     }
 
     private int stepBackward(Range[] orgPack, int point) {
         double workload = totalWorkload(orgPack[point + 1].start, orgPack[point + 1].end + 1);
+        int newPos = orgPack[point].end;
         int j = orgPack[point].end - 1;
         final int lowBound = orgPack[point].start;
         while (j > lowBound && (workload += normalizedWordloads[j]) <= loadUpperLimit) {
@@ -78,12 +79,11 @@ public class FastCalculator extends PackCalculator {
             double g = totalGain(orgPack);
             if (g > gain) {
                 gain = g;
-            } else {
-                break;
+                newPos = j;
             }
             j--;
         }
-        return j + 1;
+        return newPos;
     }
 
     private double totalGain(Range[] pack) {

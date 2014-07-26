@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
@@ -28,29 +27,55 @@ public class PackCalculatorTest {
         dataSizes = Files.readAllLines(Paths.get("/Volumes/Data/work/doctor/resa/exp/data-sizes-064.txt")).stream()
                 .map(String::trim).filter(s -> !s.isEmpty()).mapToDouble(Double::valueOf).toArray();
         totalDataSize = DoubleStream.of(dataSizes).sum();
-        calculator = new FastCalculator().setWorkloads(workload).setDataSizes(dataSizes).setUpperLimitRatio(1.3f);
+        calculator = new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes).setUpperLimitRatio(1.3f);
     }
 
     @Test
     public void testOneSrcPack() throws Exception {
         int currNumPacks = 4;
-        int newNumPacks = 6;
+        int newNumPacks = 9;
         PackCalculator ret = calculator.setSrcPack(packAvg(workload.length, currNumPacks)).setWorkloads(workload)
                 .setTargetPackSize(newNumPacks).calc();
         System.out.println(Arrays.toString(packAvg(workload.length, currNumPacks)));
         Assert.assertEquals(IntStream.of(ret.getPack()).sum(), workload.length);
         System.out.println(Arrays.toString(ret.getPack()));
-        System.out.println(ret.gain());
+        KuhnMunkres km = new KuhnMunkres(workload.length);
+        System.out.println(packGain(PackCalculator.convertPack(packAvg(workload.length, currNumPacks)),
+                PackCalculator.convertPack(ret.getPack()), km));
         System.out.println("To move: " + (totalDataSize - ret.gain()));
+    }
+
+    private double packGain(PackCalculator.Range[] pack1, PackCalculator.Range[] pack2, KuhnMunkres kmAlg) {
+        double[][] weights = new double[pack1.length][pack2.length];
+        for (int i = 0; i < pack1.length; i++) {
+            for (int j = 0; j < pack2.length; j++) {
+                weights[i][j] = overlap(pack1[i], pack2[j]);
+            }
+        }
+        double[] maxWeight = new double[1];
+        kmAlg.getMaxBipartie(weights, maxWeight);
+        return maxWeight[0];
+    }
+
+    private double overlap(PackCalculator.Range r1, PackCalculator.Range r2) {
+        if (r1.end < r2.start || r1.start > r2.end) {
+            return 0;
+        } else if (r1.start <= r2.start && r1.end >= r2.start) {
+            return IntStream.rangeClosed(r2.start, Math.min(r2.end, r1.end)).mapToDouble(i -> dataSizes[i]).sum();
+        } else if (r1.start >= r2.start && r1.start <= r2.end) {
+            return IntStream.rangeClosed(r1.start, Math.min(r2.end, r1.end)).mapToDouble(i -> dataSizes[i]).sum();
+        }
+        return 0;
     }
 
     @Test
     public void testMultiSrcPack() throws Exception {
-        int size = 20, targetPack = 9;
-        double[] weight = new Random().doubles(size).toArray();
+        int size = 6, targetPack = 9;
+        double[] weight = DoubleStream.generate(() -> 0.5).limit(size).toArray();
         double sum = DoubleStream.of(weight).sum();
         weight = DoubleStream.of(weight).map(w -> w / sum).toArray();
-        Iterator<int[]> packages = IntStream.range(4, 4 + size + 1).filter(i -> i != targetPack)
+        int start = 6;
+        Iterator<int[]> packages = IntStream.range(start, start + size + 1).filter(i -> i != targetPack)
                 .mapToObj(i -> packAvg(workload.length, i)).iterator();
         Map<int[], Double> srcPacks = DoubleStream.of(weight).boxed()
                 .collect(Collectors.toMap(w -> packages.next(), w -> w));

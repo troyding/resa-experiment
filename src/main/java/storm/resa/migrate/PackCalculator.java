@@ -1,9 +1,6 @@
 package storm.resa.migrate;
 
-import java.util.AbstractMap;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
@@ -83,7 +80,7 @@ public abstract class PackCalculator {
         return setSrcPacks(Collections.singletonMap(pack, 1.0));
     }
 
-    protected Range[] convertPack(int[] pack) {
+    protected static Range[] convertPack(int[] pack) {
         Range[] ret = new Range[pack.length];
         int start = 0;
         for (int i = 0; i < pack.length; i++) {
@@ -94,7 +91,7 @@ public abstract class PackCalculator {
         return ret;
     }
 
-    protected int[] convertPack(Range[] pack) {
+    protected static int[] convertPack(Range[] pack) {
         return Stream.of(pack).mapToInt(p -> p.end - p.start + 1).toArray();
     }
 

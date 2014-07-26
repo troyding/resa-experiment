@@ -49,29 +49,33 @@ public class DPBasedCalculator extends PackCalculator {
         int[] tmpSegments = new int[packSegments.length];
         int[] newPos = new int[packSegments.length];
         for (int i = split; i < wEnd; i++) {
-            if (totalWorkload(wStart, i) > loadUpperLimit || wEnd - i < numPartition - 1
-                    || totalWorkload(i, wEnd) > (numPartition - 1) * loadUpperLimit) {
+            if (totalWorkload(wStart, i) > loadUpperLimit || wEnd - i < numPartition - 1) {
                 break;
+            }
+            if (totalWorkload(i, wEnd) > (numPartition - 1) * loadUpperLimit){
+                continue;
             }
             for (int j = 0; j < srcPacks.length; j++) {
                 Range[] srcPack = srcPacks[j].getKey();
-                int startPack = findPack(srcPack, split);
-                int stopPack = srcPack[startPack].start < split ? startPack + 1 : startPack;
+                int startPack = findPack(srcPack, i);
+                int stopPack = srcPack[startPack].start < i ? startPack + 1 : startPack;
                 startPack = Math.max(startPack, packSegments[j * 2]);
                 stopPack = Math.min(stopPack, packSegments[j * 2 + 1]);
                 if (startPack == stopPack) {
                     newPos[j * 2] = startPack;
                     newPos[j * 2 + 1] = startPack;
-                } else {
+                } else if (startPack == stopPack - 1) {
                     newPos[j * 2] = startPack;
-                    newPos[j * 2 + 1] = startPack + 1;
+                    newPos[j * 2 + 1] = stopPack;
+                } else {
+                    throw new IllegalStateException("for package " + j + ", start=" + startPack + ", stop=" + stopPack);
                 }
             }
             long tryTimes = 1 << srcPacks.length;
             for (long j = 0; j < tryTimes; j++) {
                 // go right
                 for (int k = 0; k < srcPacks.length; k++) {
-                    if ((j & (1 << k)) > 0) {
+                    if ((j & (1L << k)) > 0) {
                         tmpSegments[k * 2] = newPos[k * 2 + 1];
                     } else {
                         tmpSegments[k * 2] = newPos[k * 2];
@@ -84,7 +88,7 @@ public class DPBasedCalculator extends PackCalculator {
                 }
                 // go left
                 for (int k = 0; k < srcPacks.length; k++) {
-                    if ((j & (1 << k)) > 0) {
+                    if ((j & (1L << k)) > 0) {
                         tmpSegments[k * 2 + 1] = newPos[k * 2 + 1];
                     } else {
                         tmpSegments[k * 2 + 1] = newPos[k * 2];
