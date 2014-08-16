@@ -23,6 +23,11 @@ public abstract class PackCalculator {
         boolean contains(int v) {
             return start <= v && v <= end;
         }
+
+        @Override
+        public String toString() {
+            return "[" + start + ","+end+"]";
+        }
     }
 
     protected static class Pack {
@@ -80,6 +85,14 @@ public abstract class PackCalculator {
         return setSrcPacks(Collections.singletonMap(pack, 1.0));
     }
 
+    /**
+     * Calcuate the range values of a partition
+     * pack[i] is the number of tasks belonging to the ith partition, e.g., 3 partitions with 3, 4, 5 tasks
+     * Range results are 0-2, 3-6, 7-11
+     *
+     * @param pack
+     * @return
+     */
     protected static Range[] convertPack(int[] pack) {
         Range[] ret = new Range[pack.length];
         int start = 0;

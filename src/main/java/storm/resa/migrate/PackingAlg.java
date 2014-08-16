@@ -21,6 +21,12 @@ public class PackingAlg {
         }
     }
 
+    /**
+     * Return a partition which leads to the minimum variance of workloads among partitions.
+     * @param workloads
+     * @param numPartition
+     * @return
+     */
     public static int[] calc(double[] workloads, int numPartition) {
         if (workloads.length < numPartition) {
             throw new IllegalArgumentException("numPartition cann't larger than workloads size");
