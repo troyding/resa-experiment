@@ -17,6 +17,7 @@ import java.util.stream.Stream;
  */
 public class MigrateMetircGenerator {
 
+    //    public static int[] STATES = new int[]{8, 10, 12, 14, 16};
     public static int[] STATES = new int[]{4, 6, 8, 10};
 
     private int numSteps = 10000000;
@@ -69,7 +70,7 @@ public class MigrateMetircGenerator {
             if (x == y) {
                 metrics[i] = 0;
             } else {
-                double d =  Math.abs(rand.nextGaussian());//Math.exp(-Math.abs(STATES[x] - STATES[y]) / 3) * Math.abs(rand.nextGaussian());
+                double d = Math.exp(-Math.abs(STATES[x] - STATES[y])) * Math.abs(rand.nextGaussian());
                 metrics[i] = d;
                 sum += d;
             }
