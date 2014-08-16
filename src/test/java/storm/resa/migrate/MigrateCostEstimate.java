@@ -88,7 +88,7 @@ public class MigrateCostEstimate {
 
     @Test
     public void best() {
-        int[] states = MigrateMetircGenerator.STATES;
+        int[] states = allStates;
         Map<Integer, int[]> state2Pack = IntStream.of(states).boxed().collect(Collectors.toMap(i -> i,
                 i -> packAvg(workload.length, i)));
         Map<Integer, Double> gain = new TreeMap<>();
@@ -115,7 +115,7 @@ public class MigrateCostEstimate {
 
     @Test
     public void compare() {
-        int count = 1000;
+        int count = 100;
         int[] states = new int[count];
         states[0] = 8;
         for (int i = 1; i < states.length; i++) {
@@ -230,8 +230,8 @@ public class MigrateCostEstimate {
 //    }
 
     private double calcGlobalOptimization1(int[] states, KuhnMunkres km) {
-        Map<Integer, int[]> state2Pack = IntStream.of(MigrateMetircGenerator.STATES).boxed()
-                .collect(Collectors.toMap(i -> i, i -> packAvg(workload.length, i)));
+        Map<Integer, int[]> state2Pack = IntStream.of(allStates).boxed()
+                .collect(Collectors.toMap(i -> i, i -> PackingAlg.calc(workload, i)));
         double toMove = 0.0;
         for (int i = 1; i < states.length; i++) {
             Range[] currPack = convertPack(state2Pack.get(states[i - 1]));
@@ -276,8 +276,8 @@ public class MigrateCostEstimate {
     }
 
     private double calcGlobalOptimization2(int[] states, KuhnMunkres km) {
-        Map<Integer, int[]> state2Pack = IntStream.of(MigrateMetircGenerator.STATES).boxed()
-                .collect(Collectors.toMap(i -> i, i -> packAvg(workload.length, i)));
+        Map<Integer, int[]> state2Pack = IntStream.of(allStates).boxed()
+                .collect(Collectors.toMap(i -> i, i -> PackingAlg.calc(workload, i)));
         double toMove = 0.0;
         for (int i = 1; i < states.length; i++) {
             Range[] currPack = convertPack(state2Pack.get(states[i - 1]));
