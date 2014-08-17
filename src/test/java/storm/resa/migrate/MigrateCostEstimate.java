@@ -115,7 +115,7 @@ public class MigrateCostEstimate {
 
     @Test
     public void compare() {
-        int count = 100;
+        int count = 1000;
         int[] states = new int[count];
         states[0] = 8;
         for (int i = 1; i < states.length; i++) {
@@ -144,9 +144,10 @@ public class MigrateCostEstimate {
         Map<Integer, int[]> state2Pack = new HashMap<>(Collections.singletonMap(states[0],
                 packAvg(workload.length, states[0])));
         double toMove = 0.0;
+        int numSteps = 2;
         for (int i = 1; i < states.length; i++) {
             int[] currPack = state2Pack.get(states[i - 1]);
-            state2Pack.put(states[i], calcNextPack(currPack, states[i]));
+            state2Pack.put(states[i], calcNextPack(currPack, states[i], numSteps));
             double remain = packGain(convertPack(currPack), convertPack(state2Pack.get(states[i])), km);
 //            System.out.printf("%.2f\n", (totalDataSize - remain) / 1024);
             toMove += (totalDataSize - remain);
@@ -154,34 +155,64 @@ public class MigrateCostEstimate {
         return toMove;
     }
 
-    private int[] calcNextPack(int[] currPack, int nextStat) {
-        PackCalculator calculator = new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes)
-                .setUpperLimitRatio(ratio);
+
+    private int[] calcNextPack(int[] currPack, int nextStat, String cacheKeyPrefix, int depth,
+                               Map<String, int[]> stateCache, PackCalculator packCalculator, double[] gainCache) {
+        String myCacheKey = cacheKeyPrefix + "-" + nextStat;
+        int[] myOldPack = stateCache.computeIfAbsent(myCacheKey, cacheKey -> PackingAlg.calc(workload, nextStat));
+//        System.out.println(myCacheKey + " old:" + Arrays.toString(myOldPack));
         Map<Integer, Double> targetState = getTargetState(nextStat);
-        Map<int[], Double> packs = targetState.entrySet().stream()
-                .collect(Collectors.toMap(e -> PackingAlg.calc(workload, e.getKey()), Map.Entry::getValue));
-        double gain = -100;
-        do {
-            packs.put(currPack, 1.0);
-            calculator.setSrcPacks(packs).setTargetPackSize(nextStat).calc();
-            double g = calculator.gain();
-            int[] newPack = calculator.getPack();
-            if (Math.abs(g - gain) < 10.0) {
-                return newPack;
+        int nextDepth = depth - 1;
+        targetState.forEach((state, p) -> {
+            String cacheKey = myCacheKey + "-" + state;
+            int[] pack;
+            if (nextDepth > 0) {
+                pack = calcNextPack(myOldPack, state, myCacheKey, nextDepth, stateCache, packCalculator, null);
+            } else {
+                pack = calcBestLastPack(myOldPack, state, packCalculator);
             }
-            packs.clear();
-            targetState.forEach((k, v) -> packs.put(calcBestLastPack(newPack, k), v));
-            gain = g;
-        } while (true);
-//        System.out.println("-----------");
+            stateCache.put(cacheKey, pack);
+        });
+        Map<int[], Double> packs = targetState.entrySet().stream().collect(Collectors.toMap(e ->
+                stateCache.computeIfAbsent(myCacheKey + "-" + e.getKey(),
+                        cacheKey -> PackingAlg.calc(workload, e.getKey())), Map.Entry::getValue));
+        packs.put(currPack, 1.0);
+        packCalculator.setSrcPacks(packs).setTargetPackSize(nextStat).calc();
+        if (gainCache != null) {
+            gainCache[0] = packCalculator.gain();
+        }
+//        System.out.println(myCacheKey + " new :" + Arrays.toString(packCalculator.getPack()) + ", gain="
+//                + packCalculator.gain());
+        return stateCache.compute(myCacheKey, (cacheKey, pack) -> packCalculator.getPack());
     }
 
-    private int[] calcBestLastPack(int[] currPack, int lastState) {
+    private int[] calcNextPack(int[] currPack, int nextStat, int numSteps) {
+        PackCalculator calculator = new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes)
+                .setUpperLimitRatio(ratio);
+        Map<String, int[]> cache = new HashMap<>();
+        int[] pack = null;
+        double[] gainCache = new double[1];
+        double gain = -2.0;
+        do {
+            int[] newPack = calcNextPack(currPack, nextStat, String.valueOf(currPack.length), numSteps, cache,
+                    calculator, gainCache);
+//            System.out.println(Arrays.toString(newPack));
+            if (pack != null && Arrays.equals(newPack, pack)) {
+//            if (Math.abs(gainCache[0] - gain) < 2) {
+                break;
+            } else {
+                gain = gainCache[0];
+                pack = newPack;
+            }
+        } while (true);
+//        cache.forEach((k, v) -> System.out.println(k + "-->" + Arrays.toString(v)));
+        return pack;
+    }
+
+    private int[] calcBestLastPack(int[] currPack, int lastState, PackCalculator packCalculator) {
         int[] states = allStates;
         Map<Integer, int[]> state2Pack = IntStream.of(states).boxed().collect(Collectors.toMap(i -> i,
                 i -> PackingAlg.calc(workload, i)));
-        PackCalculator calculator = new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes)
-                .setUpperLimitRatio(ratio);
         int[] retState = null;
         do {
             // for each state, iterate it
@@ -191,8 +222,8 @@ public class MigrateCostEstimate {
                 if (states[i] == lastState) {
                     packs.put(currPack, 1.0);
                 }
-                calculator.setSrcPacks(packs).setTargetPackSize(states[i]).calc();
-                state2Pack.put(states[i], calculator.getPack());
+                packCalculator.setSrcPacks(packs).setTargetPackSize(states[i]).calc();
+                state2Pack.put(states[i], packCalculator.getPack());
             }
             if (retState != null && Arrays.equals(state2Pack.get(lastState), retState)) {
                 break;
@@ -200,11 +231,6 @@ public class MigrateCostEstimate {
             retState = state2Pack.get(lastState);
         } while (true);
         return retState;
-    }
-
-    private int[] getBestPack(int[] src, int destSize) {
-        return new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes).setUpperLimitRatio(ratio)
-                .setSrcPack(src).setTargetPackSize(destSize).calc().getPack();
     }
 
 //    private int[] calcNextPack(int[] currPack, int nextStat) {
