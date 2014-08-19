@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,20 +24,24 @@ public class MigrateCostEstimate {
     private double[] workload;
     private double totalDataSize;
     private TreeMap<String, Double> migrationMetrics;
-    private float ratio = 1.5f;
+    private float ratio = 1.3f;
+    private int[] allStates;
+    private Path root = Paths.get("/Volumes/Data/work/doctor/resa/exp");
 
     @Before
     public void init() throws Exception {
-        workload = Files.readAllLines(Paths.get("/Volumes/Data/work/doctor/resa/exp/workload-032.txt")).stream()
-                .map(String::trim).filter(s -> !s.isEmpty()).mapToDouble(Double::valueOf).toArray();
-        dataSizes = Files.readAllLines(Paths.get("/Volumes/Data/work/doctor/resa/exp/data-sizes-032.txt")).stream()
-                .map(String::trim).filter(s -> !s.isEmpty()).mapToDouble(Double::valueOf).toArray();
+        workload = Files.readAllLines(root.resolve("workload-064.txt")).stream().map(String::trim)
+                .filter(s -> !s.isEmpty()).mapToDouble(Double::valueOf).toArray();
+        dataSizes = Files.readAllLines(root.resolve("data-sizes-064.txt")).stream().map(String::trim)
+                .filter(s -> !s.isEmpty()).mapToDouble(Double::valueOf).toArray();
         totalDataSize = DoubleStream.of(dataSizes).sum();
-        migrationMetrics = Files.readAllLines(Paths.get("/Volumes/Data/work/doctor/resa/exp/metrics.txt")).stream()
+        migrationMetrics = Files.readAllLines(root.resolve("metrics.txt")).stream()
                 .map(s -> s.split(":")).collect(Collectors.toMap(strs -> strs[0] + "-" + strs[1],
                         strs -> Double.parseDouble(strs[2]), (v1, v2) -> {
                             throw new IllegalStateException();
                         }, TreeMap::new));
+        allStates = migrationMetrics.keySet().stream().flatMap(s -> Stream.of(s.split("-"))).distinct()
+                .mapToInt(Integer::parseInt).sorted().toArray();
     }
 
     private int getNextState(int curr) {
@@ -83,7 +88,7 @@ public class MigrateCostEstimate {
 
     @Test
     public void best() {
-        int[] states = MigrateMetircGenerator.STATES;
+        int[] states = allStates;
         Map<Integer, int[]> state2Pack = IntStream.of(states).boxed().collect(Collectors.toMap(i -> i,
                 i -> packAvg(workload.length, i)));
         Map<Integer, Double> gain = new TreeMap<>();
@@ -110,7 +115,7 @@ public class MigrateCostEstimate {
 
     @Test
     public void compare() {
-        int count = 100;
+        int count = 1000;
         int[] states = new int[count];
         states[0] = 8;
         for (int i = 1; i < states.length; i++) {
@@ -126,7 +131,7 @@ public class MigrateCostEstimate {
         System.out.println("local opt: " + output(calcLocalOptimization(states, km), count));
         System.out.println("global opt: " + output(calcGlobalOptimization(states, km), count));
         System.out.println("global opt1: " + output(calcGlobalOptimization1(states, km), count));
-        System.out.println("global opt2: " + output(calcGlobalOptimization2(states, km), count));
+//        System.out.println("global opt2: " + output(calcGlobalOptimization2(states, km), count));
     }
 
     private String output(double toMove, int count) {
@@ -139,9 +144,10 @@ public class MigrateCostEstimate {
         Map<Integer, int[]> state2Pack = new HashMap<>(Collections.singletonMap(states[0],
                 packAvg(workload.length, states[0])));
         double toMove = 0.0;
+        int numSteps = 2;
         for (int i = 1; i < states.length; i++) {
             int[] currPack = state2Pack.get(states[i - 1]);
-            state2Pack.put(states[i], calcNextPack(currPack, states[i]));
+            state2Pack.put(states[i], calcNextPack(currPack, states[i], numSteps));
             double remain = packGain(convertPack(currPack), convertPack(state2Pack.get(states[i])), km);
 //            System.out.printf("%.2f\n", (totalDataSize - remain) / 1024);
             toMove += (totalDataSize - remain);
@@ -149,36 +155,109 @@ public class MigrateCostEstimate {
         return toMove;
     }
 
-    private int[] calcNextPack(int[] currPack, int nextStat) {
+
+    private int[] calcNextPack(int[] currPack, int nextStat, String cacheKeyPrefix, int depth,
+                               Map<String, int[]> stateCache, PackCalculator packCalculator, double[] gainCache) {
+        String myCacheKey = cacheKeyPrefix + "-" + nextStat;
+        int[] myOldPack = stateCache.computeIfAbsent(myCacheKey, cacheKey -> PackingAlg.calc(workload, nextStat));
+//        System.out.println(myCacheKey + " old:" + Arrays.toString(myOldPack));
+        Map<Integer, Double> targetState = getTargetState(nextStat);
+        int nextDepth = depth - 1;
+        targetState.forEach((state, p) -> {
+            String cacheKey = myCacheKey + "-" + state;
+            int[] pack;
+            if (nextDepth > 0) {
+                pack = calcNextPack(myOldPack, state, myCacheKey, nextDepth, stateCache, packCalculator, null);
+            } else {
+                pack = calcBestLastPack(myOldPack, state, packCalculator);
+            }
+            stateCache.put(cacheKey, pack);
+        });
+        Map<int[], Double> packs = targetState.entrySet().stream().collect(Collectors.toMap(e ->
+                stateCache.computeIfAbsent(myCacheKey + "-" + e.getKey(),
+                        cacheKey -> PackingAlg.calc(workload, e.getKey())), Map.Entry::getValue));
+        packs.put(currPack, 1.0);
+        packCalculator.setSrcPacks(packs).setTargetPackSize(nextStat).calc();
+        if (gainCache != null) {
+            gainCache[0] = packCalculator.gain();
+        }
+//        System.out.println(myCacheKey + " new :" + Arrays.toString(packCalculator.getPack()) + ", gain="
+//                + packCalculator.gain());
+        return stateCache.compute(myCacheKey, (cacheKey, pack) -> packCalculator.getPack());
+    }
+
+    private int[] calcNextPack(int[] currPack, int nextStat, int numSteps) {
         PackCalculator calculator = new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes)
                 .setUpperLimitRatio(ratio);
-        Map<Integer, Double> targetState = getTargetState(nextStat);
-        Map<int[], Double> packs = targetState.entrySet().stream()
-                .collect(Collectors.toMap(e -> packAvg(workload.length, e.getKey()), Map.Entry::getValue));
-        double gain = -1;
+        Map<String, int[]> cache = new HashMap<>();
+        int[] pack = null;
+        double[] gainCache = new double[1];
+        double gain = -2.0;
         do {
-            packs.put(currPack, 1.0);
-            calculator.setSrcPacks(packs).setTargetPackSize(nextStat).calc();
-            double g = calculator.gain();
-            int[] newPack = calculator.getPack();
-            if (Math.abs(g - gain) < 10.0) {
-                return newPack;
+            int[] newPack = calcNextPack(currPack, nextStat, String.valueOf(currPack.length), numSteps, cache,
+                    calculator, gainCache);
+//            System.out.println(Arrays.toString(newPack));
+            if (pack != null && Arrays.equals(newPack, pack)) {
+//            if (Math.abs(gainCache[0] - gain) < 2) {
+                break;
+            } else {
+                gain = gainCache[0];
+                pack = newPack;
             }
-            packs.clear();
-            targetState.forEach((k, v) -> packs.put(getBestPack(newPack, k), v));
-            gain = g;
         } while (true);
-//        System.out.println("-----------");
+//        cache.forEach((k, v) -> System.out.println(k + "-->" + Arrays.toString(v)));
+        return pack;
     }
 
-    private int[] getBestPack(int[] src, int destSize) {
-        return new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes).setUpperLimitRatio(ratio)
-                .setSrcPack(src).setTargetPackSize(destSize).calc().getPack();
+    private int[] calcBestLastPack(int[] currPack, int lastState, PackCalculator packCalculator) {
+        int[] states = allStates;
+        Map<Integer, int[]> state2Pack = IntStream.of(states).boxed().collect(Collectors.toMap(i -> i,
+                i -> PackingAlg.calc(workload, i)));
+        int[] retState = null;
+        do {
+            // for each state, iterate it
+            for (int i = 0; i < states.length; i++) {
+                Map<int[], Double> packs = new HashMap<>();
+                getTargetState(states[i]).forEach((state, p) -> packs.put(state2Pack.get(state), p));
+                if (states[i] == lastState) {
+                    packs.put(currPack, 1.0);
+                }
+                packCalculator.setSrcPacks(packs).setTargetPackSize(states[i]).calc();
+                state2Pack.put(states[i], packCalculator.getPack());
+            }
+            if (retState != null && Arrays.equals(state2Pack.get(lastState), retState)) {
+                break;
+            }
+            retState = state2Pack.get(lastState);
+        } while (true);
+        return retState;
     }
+
+//    private int[] calcNextPack(int[] currPack, int nextStat) {
+//        PackCalculator calculator = new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes)
+//                .setUpperLimitRatio(ratio);
+//        Map<Integer, Double> targetState = getTargetState(nextStat);
+//        Map<int[], Double> packs = targetState.entrySet().stream()
+//                .collect(Collectors.toMap(e -> packAvg(workload.length, e.getKey()), Map.Entry::getValue));
+//        double gain = -1;
+//        do {
+//            packs.put(currPack, 1.0);
+//            calculator.setSrcPacks(packs).setTargetPackSize(nextStat).calc();
+//            double g = calculator.gain();
+//            int[] newPack = calculator.getPack();
+//            if (Math.abs(g - gain) < 10.0) {
+//                return newPack;
+//            }
+//            packs.clear();
+//            targetState.forEach((k, v) -> packs.put(getBestPack(newPack, k), v));
+//            gain = g;
+//        } while (true);
+//       System.out.println("-----------");
+//    }
 
     private double calcGlobalOptimization1(int[] states, KuhnMunkres km) {
-        Map<Integer, int[]> state2Pack = IntStream.of(MigrateMetircGenerator.STATES).boxed()
-                .collect(Collectors.toMap(i -> i, i -> packAvg(workload.length, i)));
+        Map<Integer, int[]> state2Pack = IntStream.of(allStates).boxed()
+                .collect(Collectors.toMap(i -> i, i -> PackingAlg.calc(workload, i)));
         double toMove = 0.0;
         for (int i = 1; i < states.length; i++) {
             Range[] currPack = convertPack(state2Pack.get(states[i - 1]));
@@ -191,7 +270,7 @@ public class MigrateCostEstimate {
     }
 
     private void calcBest1(int currState, int nextStat, Map<Integer, int[]> state2Pack) {
-        int[] states = MigrateMetircGenerator.STATES;
+        int[] states = allStates;
         Map<Integer, Double> gain = new TreeMap<>();
         PackCalculator calculator = new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes)
                 .setUpperLimitRatio(ratio);
@@ -207,7 +286,7 @@ public class MigrateCostEstimate {
 //                    for (Map.Entry<int[], Double> entry : packs.entrySet()) {
 //                        entry.setValue(entry.getValue() * 0.5);
 //                    }
-                    packs.put(initState, 1.01);
+                    packs.put(initState, 1.0);
                 }
                 calculator.setSrcPacks(packs).setTargetPackSize(states[i]).calc();
                 state2Pack.put(states[i], calculator.getPack());
@@ -223,8 +302,8 @@ public class MigrateCostEstimate {
     }
 
     private double calcGlobalOptimization2(int[] states, KuhnMunkres km) {
-        Map<Integer, int[]> state2Pack = IntStream.of(MigrateMetircGenerator.STATES).boxed()
-                .collect(Collectors.toMap(i -> i, i -> packAvg(workload.length, i)));
+        Map<Integer, int[]> state2Pack = IntStream.of(allStates).boxed()
+                .collect(Collectors.toMap(i -> i, i -> PackingAlg.calc(workload, i)));
         double toMove = 0.0;
         for (int i = 1; i < states.length; i++) {
             Range[] currPack = convertPack(state2Pack.get(states[i - 1]));
@@ -237,7 +316,7 @@ public class MigrateCostEstimate {
     }
 
     private void calcBest2(int currState, int nextStat, Map<Integer, int[]> state2Pack) {
-        int[] states = MigrateMetircGenerator.STATES;
+        int[] states = allStates;
         Map<Integer, Double> gain = new TreeMap<>();
         PackCalculator calculator = new DPBasedCalculator().setWorkloads(workload).setDataSizes(dataSizes)
                 .setUpperLimitRatio(ratio);
