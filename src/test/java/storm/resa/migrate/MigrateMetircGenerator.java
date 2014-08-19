@@ -17,47 +17,23 @@ import java.util.stream.Stream;
  */
 public class MigrateMetircGenerator {
 
-    public static int[] STATES = new int[]{4, 6, 8, 10};
+    public static int[] STATES = new int[]{4, 5, 6, 7, 8};
 
     private int numSteps = 10000000;
     private TreeMap<String, Double> migrationMetrics;
+    private String workingPath = "C:\\Users\\Tom.fu\\Desktop\\storm-experiment\\expData\\";
 
     @Before
     public void init() throws Exception {
-        migrationMetrics = Files.readAllLines(Paths.get("/Volumes/Data/work/doctor/resa/exp/transfer-p.txt")).stream()
+
+        migrationMetrics = Files.readAllLines(Paths.get(workingPath + "transfer-p.txt")).stream()
                 .map(s -> s.split(":")).collect(Collectors.toMap(strs -> strs[0] + "-" + strs[1],
                         strs -> Double.parseDouble(strs[2]), (v1, v2) -> {
                             throw new IllegalStateException();
                         }, TreeMap::new));
     }
 
-    @Test
-    public void genStateTransferMetric() {
-        TreeMap<String, Integer> stat = new TreeMap<>();
-        int currState = 8;
-        for (int i = 1; i < numSteps; i++) {
-            int nextStates = getNextState(currState);
-            stat.compute(currState + "-" + nextStates, (k, v) -> v == null ? 1 : v + 1);
-            currState = nextStates;
-        }
-        stat.forEach((k, v) -> System.out.printf("%s:%f\n", k.replace('-', ':'), (double) v / numSteps));
-    }
-
-    private int getNextState(int curr) {
-        Map.Entry<String, Double>[] states = migrationMetrics.subMap(curr + "-", curr + "~").entrySet()
-                .toArray(new Map.Entry[0]);
-        double sum = Stream.of(states).mapToDouble(e -> e.getValue()).sum();
-        double rand = Math.random();
-        double d = 0;
-        for (int i = 0; i < states.length; i++) {
-            d += (states[i].getValue() / sum);
-            if (d >= rand) {
-                return Integer.parseInt(states[i].getKey().split("-")[1]);
-            }
-        }
-        throw new IllegalStateException();
-    }
-
+    //step 1, copy results to transfer-p.txt
     @Test
     public void genNeighStateProbability() {
         double[] metrics = new double[STATES.length * STATES.length];
@@ -83,6 +59,34 @@ public class MigrateMetircGenerator {
                 System.out.printf("%d:%d:%.4f\n", STATES[x], STATES[y], metrics[i]);
             }
         }
+    }
+
+    //step 2, copy results to metrics.txt
+    @Test
+    public void genStateTransferMetric() {
+        TreeMap<String, Integer> stat = new TreeMap<>();
+        int currState = 8;
+        for (int i = 1; i < numSteps; i++) {
+            int nextStates = getNextState(currState);
+            stat.compute(currState + "-" + nextStates, (k, v) -> v == null ? 1 : v + 1);
+            currState = nextStates;
+        }
+        stat.forEach((k, v) -> System.out.printf("%s:%f\n", k.replace('-', ':'), (double) v / numSteps));
+    }
+
+    private int getNextState(int curr) {
+        Map.Entry<String, Double>[] states = migrationMetrics.subMap(curr + "-", curr + "~").entrySet()
+                .toArray(new Map.Entry[0]);
+        double sum = Stream.of(states).mapToDouble(e -> e.getValue()).sum();
+        double rand = Math.random();
+        double d = 0;
+        for (int i = 0; i < states.length; i++) {
+            d += (states[i].getValue() / sum);
+            if (d >= rand) {
+                return Integer.parseInt(states[i].getKey().split("-")[1]);
+            }
+        }
+        throw new IllegalStateException();
     }
 
 

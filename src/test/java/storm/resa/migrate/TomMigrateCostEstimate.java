@@ -27,7 +27,7 @@ public class TomMigrateCostEstimate {
     private double[] workload;
     private double totalDataSize;
     private TreeMap<String, Double> migrationMetrics;
-    private float ratio = 1.2f;
+    private float ratio = 1.3f;
 
     private int bufferSize = 1024 * 1024;
 
@@ -35,9 +35,9 @@ public class TomMigrateCostEstimate {
 
     @Before
     public void init() throws Exception {
-        workload = Files.readAllLines(Paths.get(workingPath + "workload-064.txt")).stream()
+        workload = Files.readAllLines(Paths.get(workingPath + "workload-032.txt")).stream()
                 .map(String::trim).filter(s -> !s.isEmpty()).mapToDouble(Double::valueOf).toArray();
-        dataSizes = Files.readAllLines(Paths.get(workingPath + "data-sizes-064.txt")).stream()
+        dataSizes = Files.readAllLines(Paths.get(workingPath + "data-sizes-032.txt")).stream()
                 .map(String::trim).filter(s -> !s.isEmpty()).mapToDouble(Double::valueOf).toArray();
         totalDataSize = DoubleStream.of(dataSizes).sum();
         migrationMetrics = Files.readAllLines(Paths.get(workingPath + "metrics.txt")).stream()
@@ -283,11 +283,11 @@ public class TomMigrateCostEstimate {
     public void compareTest() {
 
         //int[] states = new int[100];//8, 10, 4, 6, 8
-        //int[] states = new int[]{8, 6, 4, 7, 6, 7, 6, 8, 6, 4, 8, 7, 4, 8, 7, 6, 4, 8, 6, 4, 7, 4, 8, 7, 6, 4, 8, 7, 6, 4, 8, 6, 7, 6, 8, 7, 6, 5, 8, 7, 6, 4, 8, 7, 6, 7, 4, 8, 7, 4};
+        int[] states = new int[]{8, 6, 4, 7, 6, 7, 6, 8, 6, 4, 8, 7, 4, 8, 7, 6, 4, 8, 6, 4, 7, 4, 8, 7, 6, 4, 8, 7, 6, 4, 8, 6, 7, 6, 8, 7, 6, 5, 8, 7, 6, 4, 8, 7, 6, 7, 4, 8, 7, 4};
         //int[] states = new int[]{8, 6, 4, 7, 6, 7, 6, 8, 6, 4, 8, 7, 4, 8, 7, 6, 4, 8, 6, 4, 7, 4, 8, 7, 6, 4, 8, 7, 6, 4, 8, 6, 7, 6, 8, 7, 6, 5, 8, 7, 6, 4, 8, 7, 6, 7, 4, 8, 7, 4, 8, 6, 5, 6,
         //4, 8, 6, 5, 6, 5, 8, 6, 5, 6, 5, 4, 7, 6, 4, 8, 7, 6, 8, 7, 4, 8, 6, 7, 6, 7, 4, 8, 6, 5, 4, 7, 4, 8, 7, 6, 8, 7, 6, 5, 4, 7, 6, 4, 8, 6};
 
-        int[] states = new int[]{8, 7, 6, 7, 4, 8, 6, 5, 4, 8};
+        //int[] states = new int[]{8, 7, 6, 7, 4, 8, 6, 5, 4, 8};
         states[0] = 8;
         for (int i = 1; i < states.length; i++) {
             //states[i] = getNextState(states[i - 1]);
@@ -541,6 +541,13 @@ public class TomMigrateCostEstimate {
                 DataOutputStream bwCost = null;
                 String rdLineCost = null;
 
+                String fileDec = tempFolder + "\\Decision\\Step-" + i + ".txt";
+                try {
+                    Files.deleteIfExists(Paths.get(fileDec));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 //now, starting the two layer iteration, this cause |S_n| * |S_(n+1)| number of iterations.
                 try {
                     if (costMapExist) {
@@ -550,11 +557,13 @@ public class TomMigrateCostEstimate {
                         bwCost = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(Paths.get(fileCost)), bufferSize));
                         //bwCost = Files.newBufferedWriter(Paths.get(fileCost));
                     }
+                    BufferedWriter bwDec = Files.newBufferedWriter(Paths.get(fileDec));
                     BufferedReader brCurr = Files.newBufferedReader(Paths.get(fileCurr));
                     String rdLineCurr = null;
                     int currIndex = 0;
                     while ((rdLineCurr = brCurr.readLine()) != null) {
                         float minValue = Float.MAX_VALUE;
+                        int optimalDicision = Integer.MAX_VALUE;
                         String[] itemsCurr = rdLineCurr.replaceAll("\\[", "").replaceAll("\\]", "").split(",");
                         int[] srcPartition = new int[itemsCurr.length];
                         for (int j = 0; j < itemsCurr.length; j++) {
@@ -585,12 +594,15 @@ public class TomMigrateCostEstimate {
                             float cost = (float) totalDataSize - remain + nextPartitionValues[nextIndex];
                             if (cost < minValue) {
                                 minValue = cost;
+                                optimalDicision = nextIndex;
                             }
                             nextIndex++;
                         }
                         brNext.close();
                         //for each s \in S_n, save the minimum cost
                         currPartitionValues[currIndex] = minValue;
+                        bwDec.write(String.valueOf(optimalDicision));
+                        bwDec.newLine();
                         currIndex++;
                         //if back to the first state, output results
                         if (i == 0) {
@@ -605,6 +617,7 @@ public class TomMigrateCostEstimate {
                         }
                     }
                     brCurr.close();
+                    bwDec.close();
                     //save the computation of each d(s1, s2)
                     if (costMapExist) {
                         brCost.close();
