@@ -487,7 +487,7 @@ public class TomMigrateCostEstimate {
             //check when the possible feasible partition at current state i is derived before (saved in a temp file)
             //if not, derive it (time consuming, consider all possibilities)
             //therefore, only try to deriving once, later re-use by saving it to a temp file
-            String fileCurr = tempFolder + File.pathSeparator + "State-" + totalPartitionCountCurr + ".txt";
+            String fileCurr = tempFolder + File.separator + "State-" + totalPartitionCountCurr + ".txt";
             if (!Files.exists(Paths.get(fileCurr))) {
                 try {
                     BufferedWriter bw = Files.newBufferedWriter(Paths.get(fileCurr), StandardOpenOption.CREATE_NEW);
@@ -522,7 +522,7 @@ public class TomMigrateCostEstimate {
                 }
             } else {
                 int totalPartitionCountNext = states[i + 1];//next state partition
-                String fileNext = tempFolder + File.pathSeparator + "State-" + totalPartitionCountNext + ".txt";
+                String fileNext = tempFolder + File.separator + "State-" + totalPartitionCountNext + ".txt";
                 if (planSize[totalPartitionCountNext] == 0 || !Files.exists(Paths.get(fileNext))) {
                     throw new IllegalArgumentException(
                             "planSize[totalPartitionCountNext] == 0, totalPartitionCountNext: " + totalPartitionCountNext);
@@ -530,7 +530,7 @@ public class TomMigrateCostEstimate {
 
                 ///to see the migration cost is derived before or not
                 //since this is also time consuming, try to save the results for future use
-                String fileCost = tempFolder + File.pathSeparator + "Cost-" + totalPartitionCountCurr + "-" + totalPartitionCountNext + ".txt";
+                String fileCost = tempFolder + File.separator + "Cost-" + totalPartitionCountCurr + "-" + totalPartitionCountNext + ".txt";
                 boolean costMapExist = false;
                 if (Files.exists(Paths.get(fileCost))) {
                     costMapExist = true;
@@ -539,7 +539,7 @@ public class TomMigrateCostEstimate {
                 DataOutputStream bwCost = null;
                 String rdLineCost = null;
 
-                String fileDec = tempFolder + File.pathSeparator + "Decision" + File.pathSeparator + "Step-" + i + ".txt";
+                String fileDec = tempFolder + File.separator + "Decision" + File.separator + "Step-" + i + ".txt";
                 try {
                     Files.deleteIfExists(Paths.get(fileDec));
                 } catch (IOException e) {
@@ -673,7 +673,7 @@ public class TomMigrateCostEstimate {
         for (int i = 0; i < stateValueSet.size(); i++) {
             int totalPartitionCountCurr = stateValueSet.get(i);
             System.out.println("Init state: " + totalPartitionCountCurr);
-            String fileCurr = tempFolder + File.pathSeparator + "State-" + totalPartitionCountCurr + ".txt";
+            String fileCurr = tempFolder + File.separator + "State-" + totalPartitionCountCurr + ".txt";
             if (!Files.exists(Paths.get(fileCurr))) {
                 try {
                     BufferedWriter bw = Files.newBufferedWriter(Paths.get(fileCurr), StandardOpenOption.CREATE_NEW);
@@ -696,7 +696,7 @@ public class TomMigrateCostEstimate {
             }
 
             planSize[totalPartitionCountCurr] = getCount(fileCurr);
-            String fileCurrValue = tempFolder + File.pathSeparator + "values" + File.pathSeparator + "Value-" + totalPartitionCountCurr + ".txt";
+            String fileCurrValue = tempFolder + File.separator + "values" + File.separator + "Value-" + totalPartitionCountCurr + ".txt";
             if (!Files.exists(Paths.get(fileCurrValue))) {
                 try {
                     DataOutputStream bwCost = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(Paths.get(fileCurrValue)), bufferSize));
@@ -729,7 +729,7 @@ public class TomMigrateCostEstimate {
                     newRoundPartitionValues[j] = 0.0f;
                 }
 
-                String fileCurr = tempFolder + File.pathSeparator + "State-" + totalPartitionCountCurr + ".txt";
+                String fileCurr = tempFolder + File.separator + "State-" + totalPartitionCountCurr + ".txt";
                 if (!Files.exists(Paths.get(fileCurr))) {
                     throw new IllegalArgumentException(
                             "!Files.exists(Paths.get(fileCurr): " + fileCurr);
@@ -744,14 +744,14 @@ public class TomMigrateCostEstimate {
                     int[] currDecisionForNextPartition = new int[planSize[totalPartitionCountCurr]];
 
                     ///first get state partitions of next state
-                    String fileNext = tempFolder + File.pathSeparator + "State-" + totalPartitionCountNext + ".txt";
+                    String fileNext = tempFolder + File.separator + "State-" + totalPartitionCountNext + ".txt";
                     if (planSize[totalPartitionCountNext] == 0 || !Files.exists(Paths.get(fileNext))) {
                         throw new IllegalArgumentException(
                                 "planSize[totalPartitionCountNext] == 0, totalPartitionCountNext: " + totalPartitionCountNext);
                     }
 
                     ///then get the mig cost caches if exist
-                    String fileCost = tempFolder + File.pathSeparator + "Cost-" + totalPartitionCountCurr + "-" + totalPartitionCountNext + ".txt";
+                    String fileCost = tempFolder + File.separator + "Cost-" + totalPartitionCountCurr + "-" + totalPartitionCountNext + ".txt";
                     boolean costMapExist = false;
                     if (Files.exists(Paths.get(fileCost))) {
                         costMapExist = true;
@@ -761,7 +761,7 @@ public class TomMigrateCostEstimate {
 
                     /// third, get the next state values of last round
                     float[] oldRoundNextPartitionValues = new float[planSize[totalPartitionCountNext]];
-                    String fileNextValue = tempFolder + File.pathSeparator + "values" + File.pathSeparator + "Value-" + totalPartitionCountNext + ".txt";
+                    String fileNextValue = tempFolder + File.separator + "values" + File.separator + "Value-" + totalPartitionCountNext + ".txt";
                     if (!Files.exists(Paths.get(fileNextValue))) {
                         throw new IllegalArgumentException(
                                 "!Files.exists(Paths.get(fileNextValue): " + fileNextValue);
@@ -836,7 +836,7 @@ public class TomMigrateCostEstimate {
 
                 //at last, read values of last round, update diff!
                 //float[] oldPartitionValues = new float[planSize[totalPartitionCountCurr]];
-                String fileCurrValue = tempFolder + File.pathSeparator + "values" + File.pathSeparator + "Value-" + totalPartitionCountCurr + ".txt";
+                String fileCurrValue = tempFolder + File.separator + "values" + File.separator + "Value-" + totalPartitionCountCurr + ".txt";
                 if (!Files.exists(Paths.get(fileCurrValue))) {
                     throw new IllegalArgumentException(
                             "!Files.exists(Paths.get(fileCurrValue): " + fileCurrValue);
@@ -899,7 +899,7 @@ public class TomMigrateCostEstimate {
             int totalPartitionCountCurr = states[i];
             int totalPartitionCountNext = states[i + 1];
 
-            String fileCurr = tempFolder + File.pathSeparator + "State-" + totalPartitionCountCurr + ".txt";
+            String fileCurr = tempFolder + File.separator + "State-" + totalPartitionCountCurr + ".txt";
             if (!Files.exists(Paths.get(fileCurr))) {
                 throw new IllegalArgumentException(
                         "!Files.exists(Paths.get(fileCurr): " + fileCurr);
@@ -926,7 +926,7 @@ public class TomMigrateCostEstimate {
                 }
                 brCurr.close();
 
-                String fileNext = tempFolder + File.pathSeparator + "State-" + totalPartitionCountNext + ".txt";
+                String fileNext = tempFolder + File.separator + "State-" + totalPartitionCountNext + ".txt";
                 if (!Files.exists(Paths.get(fileNext))) {
                     throw new IllegalArgumentException(
                             "!Files.exists(Paths.get(fileNext): " + fileNext);
@@ -935,7 +935,7 @@ public class TomMigrateCostEstimate {
 
                 /// read values
                 float[] nextPartitionValues = new float[partitionSize];
-                String fileNextValue = tempFolder + File.pathSeparator + "values" + File.pathSeparator + "Value-" + totalPartitionCountNext + ".txt";
+                String fileNextValue = tempFolder + File.separator + "values" + File.separator + "Value-" + totalPartitionCountNext + ".txt";
                 if (!Files.exists(Paths.get(fileNextValue))) {
                     throw new IllegalArgumentException(
                             "!Files.exists(Paths.get(fileNextValue): " + fileNextValue);
